@@ -1,0 +1,19 @@
+midi:
+  port_name: "DroneChorus"
+drones:
+  - name: "DroneA"
+    serial: "/dev/ttyUSB0"
+    channel: 1
+    norm_overrides: {}
+  - name: "DroneB"
+    serial: "/dev/ttyUSB1"
+    channel: 2
+    norm_overrides: {}
+norm:
+  roll: {min:-45.0, max:45.0, curve:"expo", slew:0.05}
+  pitch:{min:-45.0, max:45.0, curve:"expo", slew:0.05}
+  yaw:  {min:-200.0,max:200.0,curve:"linear",slew:0.03}
+  altitude:{min:0.0,max:3.0,curve:"linear",slew:0.04}
+  rssi: {min:0.0, max:100.0,curve:"linear",slew:0.02}
+  vbat: {min:3.2, max:4.2, curve:"linear", slew:0.02}
+  throttle:{min:1000,max:2000,curve:"linear",slew:0.03}

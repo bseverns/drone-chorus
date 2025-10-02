@@ -1,0 +1,65 @@
+{
+  "format_version": 2,
+  "name": "DroneChorus Performance",
+  "sources": [
+    {
+      "versioned_id": "scene",
+      "id": "scene",
+      "uuid": "scene-root",
+      "name": "DroneChorus Performance",
+      "settings": {
+        "items": [
+          {
+            "name": "FPV Capture 1",
+            "source_uuid": "fpv1"
+          },
+          {
+            "name": "VCV Rack (Window)",
+            "source_uuid": "vcvwin"
+          },
+          {
+            "name": "Program Audio",
+            "source_uuid": "progaudio"
+          }
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "versioned_id": "input",
+      "id": "dshow_input",
+      "uuid": "fpv1",
+      "name": "FPV Capture 1",
+      "settings": {
+        "device_name": "RELINK_YOUR_FPV_CAPTURE_DEVICE"
+      },
+      "enabled": true
+    },
+    {
+      "versioned_id": "input",
+      "id": "window_capture",
+      "uuid": "vcvwin",
+      "name": "VCV Rack (Window)",
+      "settings": {
+        "window": "RELINK_YOUR_VCV_RACK_WINDOW"
+      },
+      "enabled": true
+    },
+    {
+      "versioned_id": "input",
+      "id": "wasapi_input_capture",
+      "uuid": "progaudio",
+      "name": "Program Audio",
+      "settings": {
+        "device_id": "RELINK_YOUR_AUDIO_INPUT"
+      },
+      "enabled": true
+    }
+  ],
+  "scene_order": [
+    {
+      "name": "DroneChorus Performance"
+    }
+  ],
+  "current_scene": "DroneChorus Performance"
+}
