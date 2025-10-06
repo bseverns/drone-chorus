@@ -31,4 +31,4 @@ This is the soup‑to‑nuts wiring for **flight → MIDI → Rack**.
 ## Tuning heuristics
 - **Slew** hides jitter; **expo** on roll/pitch feels musical.
 - Use **yaw rate** for lively micro‑movement; keep delay FB under 0.6.
-- Altitude CC rides real baro data (`MSP_ALTITUDE`) when Betaflight serves it; after ~1.5 s of silence we gracefully fall back to a throttle-derived proxy so your synth still breathes even on baro-less whoops.
+- Altitude CC rides real baro data (`MSP_ALTITUDE`) when Betaflight serves it; after ~1.5 s of silence we gracefully blend toward a throttle-derived proxy (scaled with the same min/max curve) so your synth still breathes even on baro-less whoops.

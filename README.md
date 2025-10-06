@@ -74,7 +74,7 @@ This creates a virtual MIDI port **DroneChorus** and streams CCs.
 | 14 | roll      | `MSP_ATTITUDE` → Betaflight roll (deg) |
 | 15 | pitch     | `MSP_ATTITUDE` → Betaflight pitch (deg) |
 | 16 | yaw rate  | RC yaw channel, scaled around 1500 µs |
-| 17 | altitude  | `MSP_ALTITUDE` baro height (meters); if we go deaf for >1.5 s we fake it from throttle so synth pads don’t flatline |
+| 17 | altitude  | `MSP_ALTITUDE` baro height (meters); if we go deaf for >1.5 s we ease toward a throttle-shaped proxy (scaled by the mapping range) so synth pads don’t flatline |
 | 18 | RSSI      | `MSP_ANALOG` RSSI byte |
 | 19 | VBAT      | `MSP_ANALOG` battery volts / 10 |
 | 20 | throttle  | RC throttle channel (1000–2000 µs) |

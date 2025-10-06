@@ -32,7 +32,8 @@ def worker(drone, base_norm, midi_out):
     norm={k:dict(v) for k,v in base_norm.items()}
     for k,v in (drone.get('norm_overrides') or {}).items(): norm[k].update(v)
     M=Mapper(norm); ch=drone['channel']-1
-    state={'roll':0,'pitch':0,'yaw':0,'altitude':0.0,'rssi':100,'vbat':4.0,'throttle':1000}
+    altitude_range = norm['altitude']
+    state={'roll':0,'pitch':0,'yaw':0,'altitude':altitude_range['min'],'rssi':100,'vbat':4.0,'throttle':1000}
     altitude_valid=False
     altitude_last_time=0.0
     with serial.Serial(drone['serial'],115200,timeout=0.01) as ser:
@@ -56,8 +57,9 @@ def worker(drone, base_norm, midi_out):
                 altitude_valid=False
             if not altitude_valid:
                 thr_ratio=clamp((state['throttle']-1000)/1000.0,0,1)
-                alt_norm=norm['altitude']
-                state['altitude']=alt_norm['min'] + thr_ratio*(alt_norm['max']-alt_norm['min'])
+                target_alt=altitude_range['min'] + thr_ratio*(altitude_range['max']-altitude_range['min'])
+                # lean slowly toward the throttle proxy so the smoother downstream has something to chew on
+                state['altitude'] = state['altitude']*0.7 + target_alt*0.3
             if now-t0>0.02:
                 for key,cc in [('roll',14),('pitch',15),('yaw',16),('altitude',17),('rssi',18),('vbat',19),('throttle',20)]:
                     v=int(M.norm01(key,state[key])*127); midi_out.send(mido.Message('control_change',channel=ch,control=cc,value=v))
