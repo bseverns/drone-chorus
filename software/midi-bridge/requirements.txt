@@ -1,0 +1,4 @@
+mido>=1.2
+python-rtmidi>=1.5.6
+pyserial>=3.5
+PyYAML>=6.0

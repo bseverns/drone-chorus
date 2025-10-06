@@ -22,6 +22,10 @@ This is the soup‑to‑nuts wiring for **flight → MIDI → Rack**.
 ## Single‑drone
 - Config: `config/mapping.yaml`
 - Bridge: `software/midi-bridge/msp_to_midi.py`
+- Deps: `pip install -r software/midi-bridge/requirements.txt`
+  - Installs `mido`, `python-rtmidi`, `pyserial`, and `PyYAML` in one go so the bridge can summon a virtual MIDI port.
+  - macOS & Linux: bundled RtMidi wheels usually behave; if Linux balks, grab ALSA headers first (`sudo apt install libasound2-dev`).
+  - Windows: RtMidi can’t mint virtual outs—patch in loopMIDI or an equivalent bus before launching the bridge.
 
 ## Multi‑drone (per‑channel)
 - Config: `config/multi.yaml` — list each drone: `serial`, `channel`, optional `norm_overrides`

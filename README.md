@@ -49,6 +49,9 @@ Treat that order as gospel for newcomers: prototype → secure → rehearse → 
 ```bash
 pip install -r software/midi-bridge/requirements.txt
 ```
+   - That bundle pulls in `mido`, `python-rtmidi`, `pyserial`, and `PyYAML`—everything the bridge needs to speak MSP and spin up a virtual MIDI port.
+   - macOS & Linux: the `python-rtmidi` wheels just work; if your distro is grumpy, install ALSA dev headers (`sudo apt install libasound2-dev`) before pip.
+   - Windows: RtMidi can’t conjure virtual ports natively, so pair the bridge with loopMIDI or another virtual bus.
 3) **Run**:
 ```bash
 python3 software/midi-bridge/msp_to_midi.py --serial /dev/ttyUSB0
