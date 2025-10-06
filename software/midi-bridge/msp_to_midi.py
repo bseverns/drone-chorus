@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-"""CLI wrapper for bridging a single MSP serial stream into MIDI CCs."""
+"""CLI wrapper for bridging a single MSP serial stream into MIDI CCs.
+
+Welcome to the "one drone, one synth voice" entry point. This script is meant
+to be read almost like lab notes—every helper explains why it exists so that
+you can remix it without guessing.
+
+Flow overview:
+
+1. Parse command-line arguments (serial port, MIDI options, scaling configs).
+2. Load the YAML normalization spec and any overrides students want to try.
+3. Open or create a MIDI port using :mod:`mido`.
+4. Delegate to :func:`msp_bridge.run_bridge`, which handles the realtime loop.
+
+If you're teaching or learning from this code, skim the argument parser first;
+it documents every knob you can twist without touching the Python.
+"""
 
 import argparse
 import sys
@@ -12,6 +27,18 @@ from msp_bridge import run_bridge
 
 
 def load_norm(config_path: str, key: Optional[str]) -> Dict[str, Dict[str, float]]:
+    """Load a normalization block from ``config_path``.
+
+    Args:
+        config_path: Path to a YAML file containing either the norm dict itself
+            or a parent mapping with named norm blocks.
+        key: Optional key to select inside the YAML document. ``None`` means the
+            top-level document is already the norm mapping.
+
+    Raises:
+        ValueError: If the document structure doesn't match what we expect.
+    """
+
     with open(config_path, "r", encoding="utf-8") as fh:
         data = yaml.safe_load(fh)
     if key is None:
@@ -28,6 +55,13 @@ def load_norm(config_path: str, key: Optional[str]) -> Dict[str, Dict[str, float
 
 
 def load_overrides(path: Optional[str]) -> Optional[Dict[str, Dict[str, float]]]:
+    """Read optional per-parameter overrides from YAML.
+
+    ``None`` signals "no overrides" which keeps the base config intact. Students
+    can copy-paste the ``norm`` block into a new YAML file and tweak values
+    without touching the shared repo.
+    """
+
     if not path:
         return None
     with open(path, "r", encoding="utf-8") as fh:
@@ -38,6 +72,8 @@ def load_overrides(path: Optional[str]) -> Optional[Dict[str, Dict[str, float]]]
 
 
 def open_midi_output(name: Optional[str], virtual: bool) -> Any:
+    """Open a MIDI output port, falling back to the default port on failure."""
+
     if name:
         try:
             return mido.open_output(name, virtual=virtual)
@@ -47,6 +83,8 @@ def open_midi_output(name: Optional[str], virtual: bool) -> Any:
 
 
 def parse_args() -> argparse.Namespace:
+    """Set up and parse the command-line interface."""
+
     parser = argparse.ArgumentParser(description="Bridge MSP telemetry to MIDI CCs for one craft.")
     parser.add_argument("--serial", required=True, help="Serial port that exposes MSP telemetry")
     parser.add_argument("--channel", type=int, default=1, help="1-based MIDI channel to target (default: 1)")
@@ -90,6 +128,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Parse CLI arguments, load configs, and launch :func:`run_bridge`."""
+
     args = parse_args()
     norm_key = None if args.norm_key == "-" else args.norm_key
     norm = load_norm(args.norm_config, norm_key)
@@ -107,6 +147,7 @@ def main() -> None:
             idle_sleep=args.idle_sleep,
         )
     except KeyboardInterrupt:
+        # Let ctrl+c exit without a stack trace—the performance should stay calm.
         sys.exit(0)
 
 
