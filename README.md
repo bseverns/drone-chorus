@@ -56,6 +56,8 @@ python3 software/midi-bridge/msp_to_midi.py --serial /dev/ttyUSB0
 This creates a virtual MIDI port **DroneChorus** and streams CCs.
 4) **VCV Rack**: load `vcv/DroneChorus_Patch.vcv`, set the **Core MIDI‑CC** device to **DroneChorus**, CH1.  
 5) **Tune**: scale with attenuverters; adjust slew/curves in `config/mapping.yaml`.
+   That YAML mirrors the multi‑drone map but strips it to one hero airframe—edit the serial,
+   channel, or per‑axis ranges before takeoff so the smoothing matches your rig.
 
 ## Quickstart (multi‑drone, per‑channel)
 ```bash
@@ -63,7 +65,7 @@ This creates a virtual MIDI port **DroneChorus** and streams CCs.
 ```
 - Edit `config/multi.yaml` (serials, channels).  
 - In Rack: one **MIDI‑CC** per drone, set channel 1..N.  
-- Load `vcv/DroneChorus_2Drones.vcv` as a template.
+- Load `vcv/DroneChorus_2Drones.vcv` as a template (the single‑voice starter lives at `vcv/DroneChorus_Patch.vcv`).
 
 * * *
 

@@ -1,0 +1,146 @@
+{
+  "version": "2.4.1",
+  "modules": [
+    {
+      "plugin": "Core",
+      "model": "MIDI-CC",
+      "id": 1,
+      "data": {
+        "channel": 0,
+        "cc": [
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          64
+        ],
+        "deviceName": "DroneChorus"
+      }
+    },
+    {
+      "plugin": "Core",
+      "model": "MIDI-CC",
+      "id": 8,
+      "data": {
+        "channel": 1,
+        "cc": [
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          64
+        ],
+        "deviceName": "DroneChorus"
+      }
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "VCO",
+      "id": 2
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "VCF",
+      "id": 3
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "VCA",
+      "id": 4
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "Delay",
+      "id": 5
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "Mixer",
+      "id": 6,
+      "data": {
+        "channels": 2
+      }
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "VCO",
+      "id": 9
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "VCF",
+      "id": 10
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "VCA",
+      "id": 11
+    },
+    {
+      "plugin": "Fundamental",
+      "model": "Delay",
+      "id": 12
+    },
+    {
+      "plugin": "Core",
+      "model": "Audio",
+      "id": 7
+    }
+  ],
+  "wires": [
+    {
+      "outputModuleId": 2,
+      "outputId": 0,
+      "inputModuleId": 3,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 3,
+      "outputId": 0,
+      "inputModuleId": 4,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 4,
+      "outputId": 0,
+      "inputModuleId": 6,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 9,
+      "outputId": 0,
+      "inputModuleId": 10,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 10,
+      "outputId": 0,
+      "inputModuleId": 11,
+      "inputId": 1
+    },
+    {
+      "outputModuleId": 11,
+      "outputId": 0,
+      "inputModuleId": 6,
+      "inputId": 1
+    },
+    {
+      "outputModuleId": 6,
+      "outputId": 0,
+      "inputModuleId": 7,
+      "inputId": 0
+    },
+    {
+      "outputModuleId": 6,
+      "outputId": 1,
+      "inputModuleId": 7,
+      "inputId": 1
+    }
+  ]
+}
