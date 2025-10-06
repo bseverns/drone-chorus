@@ -22,6 +22,7 @@ This is the soup‑to‑nuts wiring for **flight → MIDI → Rack**.
 ## Single‑drone
 - Config: `config/mapping.yaml`
 - Bridge: `software/midi-bridge/msp_to_midi.py`
+- Rack patch: `vcv/DroneChorus_Patch.vcv` — one voice, prewired attenuverters, easy to duplicate.
 
 ## Multi‑drone (per‑channel)
 - Config: `config/multi.yaml` — list each drone: `serial`, `channel`, optional `norm_overrides`
