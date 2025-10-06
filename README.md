@@ -71,6 +71,26 @@ This is what you launch when you’re spinning up the full chorus—multiple cra
 
 * * *
 
+## MIDI CC map (play it like an instrument tech)
+| CC | Signal | Notes |
+|---:|---|---|
+| 14 | roll | feeds filters / wavetable scans |
+| 15 | pitch | bends FM depth |
+| 16 | yaw rate | leans into delay feedback |
+| 17 | altitude | comes from `MSP_ALTITUDE`, falls back to a throttle → 0–3 m ramp if the craft ships without a baro |
+| 18 | RSSI | keeps reverb honest |
+| 19 | VBAT | nudges compression / tone |
+| 20 | throttle | classic VCA fuel |
+| 64 | arm gate | sustain-style hold for scene swaps |
+
+The whole mapping is documented like a lab notebook: see
+`docs/CONTROL_STACK_PLAYBOOK.md` for the long-form rationale, smoothing ranges,
+and how to hack on the YAML. The quick headline is that altitude isn't left to
+rot—if `MSP_ALTITUDE` packets arrive we publish meters directly; otherwise we
+lean on throttle so CC17 still animates your patch.
+
+* * *
+
 ## OBS
 Import `obs/DroneChorus_SceneCollection.json`, then relink: **FPV Capture**, **VCV Rack (Window)**, **Program Audio**. Studio Mode recommended.
 
