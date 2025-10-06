@@ -33,4 +33,5 @@ This is the soup‑to‑nuts wiring for **flight → MIDI → Rack**.
 ## Tuning heuristics
 - **Slew** hides jitter; **expo** on roll/pitch feels musical.
 - Use **yaw rate** for lively micro‑movement; keep delay FB under 0.6.
-- If no baro, map **altitude** to vertical velocity or throttle proxy.
+- Altitude CC: we sniff **MSP_ALTITUDE** first; if the craft never sends it (no
+  baro), the bridge remaps throttle into a 0–3 m envelope so CC17 keeps moving.

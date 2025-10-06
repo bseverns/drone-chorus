@@ -25,7 +25,7 @@ with intent and the data it touches.
 
 import struct
 import time
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import mido
 import serial
@@ -35,6 +35,7 @@ import serial
 # need; think of them as opcodes that label the payload format.
 MSP_ATTITUDE = 108
 MSP_RC = 105
+MSP_ALTITUDE = 109
 MSP_ANALOG = 110
 
 # A scratch buffer of the telemetry values we track. Each entry represents the
@@ -189,6 +190,9 @@ def update_state_from_msp(state: Dict[str, float], cmd: int, data: bytes) -> Non
         channels = struct.unpack("<8H", data[:16])
         state["throttle"] = channels[2]
         state["yaw"] = (channels[3] - 1500) / 500.0 * 200.0
+    elif cmd == MSP_ALTITUDE and len(data) >= 4:
+        altitude_cm = struct.unpack("<i", data[:4])[0]
+        state["altitude"] = altitude_cm / 100.0
     elif cmd == MSP_ANALOG and len(data) >= 7:
         state["vbat"] = data[0] / 10.0
         state["rssi"] = data[3] if len(data) >= 5 else 100
@@ -224,6 +228,10 @@ def run_bridge(
     stop_event=None,
     poll_interval: float = 0.02,
     idle_sleep: float = 0.001,
+    state_hook: Optional[Callable[[Dict[str, float]], None]] = None,
+    extra_state_handlers: Optional[
+        Dict[int, Callable[[Dict[str, float], bytes], None]]
+    ] = None,
 ) -> None:
     """Main pump: read MSP frames and burst out MIDI CC messages.
 
@@ -236,6 +244,9 @@ def run_bridge(
         stop_event: Optional threading event that can be toggled to exit cleanly.
         poll_interval: Minimum seconds between MIDI bursts.
         idle_sleep: Seconds to nap when no MSP frame is available.
+        state_hook: Optional callback to mutate ``state`` before emitting CCs.
+        extra_state_handlers: Optional MSP command → handler map for decoding
+            telemetry beyond the built-in trio (attitude, RC, analog).
     """
 
     mapper = build_mapper(norm, norm_overrides)
@@ -253,7 +264,11 @@ def run_bridge(
             cmd, data = frame
             # Fold the new reading into our scratch state buffer.
             update_state_from_msp(state, cmd, data)
+            if extra_state_handlers and cmd in extra_state_handlers:
+                extra_state_handlers[cmd](state, data)
             now = time.time()
+            if state_hook is not None:
+                state_hook(state)
             if now - last_emit > poll_interval:
                 # Time to publish! Each burst covers every tracked CC.
                 emit_state_cc(midi_out, mapper, channel, state)
