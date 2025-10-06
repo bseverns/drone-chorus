@@ -4,6 +4,7 @@ import serial, mido
 
 MSP_ATTITUDE = 108
 MSP_RC = 105
+MSP_ALTITUDE = 109
 MSP_ANALOG = 110
 
 def clamp(x, lo, hi): return max(lo, min(hi, x))
@@ -31,7 +32,9 @@ def worker(drone, base_norm, midi_out):
     norm={k:dict(v) for k,v in base_norm.items()}
     for k,v in (drone.get('norm_overrides') or {}).items(): norm[k].update(v)
     M=Mapper(norm); ch=drone['channel']-1
-    state={'roll':0,'pitch':0,'yaw':0,'altitude':0,'rssi':100,'vbat':4.0,'throttle':1000}
+    state={'roll':0,'pitch':0,'yaw':0,'altitude':0.0,'rssi':100,'vbat':4.0,'throttle':1000}
+    altitude_valid=False
+    altitude_last_time=0.0
     with serial.Serial(drone['serial'],115200,timeout=0.01) as ser:
         t0=0
         while True:
@@ -41,9 +44,20 @@ def worker(drone, base_norm, midi_out):
                 r,p,y=struct.unpack('<hhh',data[:6]); state['roll']=r/10.0; state['pitch']=p/10.0
             elif cmd==MSP_RC and len(data)>=16:
                 chs=struct.unpack('<8H',data[:16]); state['throttle']=chs[2]; state['yaw']=(chs[3]-1500)/500.0*200.0
+            elif cmd==MSP_ALTITUDE and len(data)>=6:
+                alt_cm,vario=struct.unpack('<ih',data[:6])
+                state['altitude']=alt_cm/100.0
+                altitude_valid=True
+                altitude_last_time=time.time()
             elif cmd==MSP_ANALOG and len(data)>=7:
                 state['vbat']=data[0]/10.0; state['rssi']=data[3] if len(data)>=5 else 100
             now=time.time()
+            if altitude_valid and now-altitude_last_time>1.5:
+                altitude_valid=False
+            if not altitude_valid:
+                thr_ratio=clamp((state['throttle']-1000)/1000.0,0,1)
+                alt_norm=norm['altitude']
+                state['altitude']=alt_norm['min'] + thr_ratio*(alt_norm['max']-alt_norm['min'])
             if now-t0>0.02:
                 for key,cc in [('roll',14),('pitch',15),('yaw',16),('altitude',17),('rssi',18),('vbat',19),('throttle',20)]:
                     v=int(M.norm01(key,state[key])*127); midi_out.send(mido.Message('control_change',channel=ch,control=cc,value=v))

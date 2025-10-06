@@ -67,6 +67,23 @@ This creates a virtual MIDI port **DroneChorus** and streams CCs.
 
 * * *
 
+## Telemetry → MIDI map (why the knobs wiggle)
+
+| CC | Signal    | Where we steal it from |
+|---:|---|---|
+| 14 | roll      | `MSP_ATTITUDE` → Betaflight roll (deg) |
+| 15 | pitch     | `MSP_ATTITUDE` → Betaflight pitch (deg) |
+| 16 | yaw rate  | RC yaw channel, scaled around 1500 µs |
+| 17 | altitude  | `MSP_ALTITUDE` baro height (meters); if we go deaf for >1.5 s we fake it from throttle so synth pads don’t flatline |
+| 18 | RSSI      | `MSP_ANALOG` RSSI byte |
+| 19 | VBAT      | `MSP_ANALOG` battery volts / 10 |
+| 20 | throttle  | RC throttle channel (1000–2000 µs) |
+| 64 | arm gate  | Throttle > 1050 µs means “go” |
+
+Treat the table like a live notebook: tweak `config/multi.yaml` to adjust min/max curves when the band (or the wind) demands it.
+
+* * *
+
 ## OBS
 Import `obs/DroneChorus_SceneCollection.json`, then relink: **FPV Capture**, **VCV Rack (Window)**, **Program Audio**. Studio Mode recommended.
 
