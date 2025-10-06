@@ -32,11 +32,11 @@ Treat that order as gospel for newcomers: prototype → secure → rehearse → 
 ## Repo layout
 ```
 .
-├─ config/                    # YAML maps (single & multi-drone)
+├─ config/                    # YAML maps (ensemble config; trim for solo)
 ├─ docs/                      # Playbooks, ledger, UX map, mappings
 ├─ software/
-│  └─ midi-bridge/            # MSP→MIDI (single + multi)
-├─ vcv/                       # Starter patches (1‑ and 2‑drone)
+│  └─ midi-bridge/            # MSP→MIDI (multi-capable bridge)
+├─ vcv/                       # Starter patches (2 voices; mute one for solo)
 ├─ obs/                       # Scene collection (import + relink)
 └─ scripts/                   # Launchers
 ```
@@ -44,18 +44,23 @@ Treat that order as gospel for newcomers: prototype → secure → rehearse → 
 * * *
 
 ## Quickstart (single‑drone)
-1) **Betaflight**: Angle mode, throttle cap, failsafe; MSP enabled on your USB/UART.  
+1) **Betaflight**: Angle mode, throttle cap, failsafe; MSP enabled on your USB/UART.
 2) **Deps**:
 ```bash
 pip install -r software/midi-bridge/requirements.txt
 ```
-3) **Run**:
+3) **Trim the multi config down to one voice**:
+   - Open `config/multi.yaml`.
+   - Keep the first block under `drones:` and either delete or comment out the rest.
+   - Point `serial` at your flight controller (`/dev/ttyUSB0`, `COM5`, etc.) and lock `channel: 1`.
+   - Leave the `norm` table alone unless you want to go full mad scientist.
+4) **Run the bridge** (same launcher as the ensemble rig, just feeding one entry):
 ```bash
-python3 software/midi-bridge/msp_to_midi.py --serial /dev/ttyUSB0
+./scripts/launch_multi.sh
 ```
-This creates a virtual MIDI port **DroneChorus** and streams CCs.
-4) **VCV Rack**: load `vcv/DroneChorus_Patch.vcv`, set the **Core MIDI‑CC** device to **DroneChorus**, CH1.  
-5) **Tune**: scale with attenuverters; adjust slew/curves in `config/mapping.yaml`.
+   That script spins up `software/midi-bridge/msp_multi_to_midi.py`, which publishes a port named **DroneChorus**.
+5) **VCV Rack**: load `vcv/DroneChorus_2Drones.vcv`, set the first **Core MIDI‑CC** module’s device to **DroneChorus** on channel 1, and either mute/delete the second voice or keep it handy for when you invite a friend.
+6) **Tune**: scale with attenuverters in Rack; sculpt slews/curves in the shared `norm` table inside `config/multi.yaml`.
 
 ## Quickstart (multi‑drone, per‑channel)
 ```bash

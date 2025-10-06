@@ -1,0 +1,4 @@
+pyyaml
+pyserial
+mido
+python-rtmidi

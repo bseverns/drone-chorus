@@ -20,8 +20,9 @@ This is the soup‑to‑nuts wiring for **flight → MIDI → Rack**.
 | 64 | arm     | Global bypass/hold |
 
 ## Single‑drone
-- Config: `config/mapping.yaml`
-- Bridge: `software/midi-bridge/msp_to_midi.py`
+- Config: `config/multi.yaml` — keep one entry under `drones:` and aim it at your lone serial port.
+- Bridge: `scripts/launch_multi.sh` → `software/midi-bridge/msp_multi_to_midi.py`
+- Rack: load `vcv/DroneChorus_2Drones.vcv`, wire up channel 1, and leave voice two waiting in the wings.
 
 ## Multi‑drone (per‑channel)
 - Config: `config/multi.yaml` — list each drone: `serial`, `channel`, optional `norm_overrides`
