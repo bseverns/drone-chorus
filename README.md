@@ -43,27 +43,31 @@ Treat that order as gospel for newcomers: prototype → secure → rehearse → 
 
 * * *
 
-## Quickstart (single‑drone)
-1) **Betaflight**: Angle mode, throttle cap, failsafe; MSP enabled on your USB/UART.  
+## Quickstart (single‑drone bench test)
+1) **Betaflight**: Angle mode, throttle cap, failsafe; MSP enabled on your USB/UART.
 2) **Deps**:
 ```bash
 pip install -r software/midi-bridge/requirements.txt
 ```
-3) **Run**:
+3) **Run the one‑off bridge** (perfect for tuning a fresh quad or rehearsing solo):
 ```bash
 python3 software/midi-bridge/msp_to_midi.py --serial /dev/ttyUSB0
 ```
-This creates a virtual MIDI port **DroneChorus** and streams CCs.
-4) **VCV Rack**: load `vcv/DroneChorus_Patch.vcv`, set the **Core MIDI‑CC** device to **DroneChorus**, CH1.  
-5) **Tune**: scale with attenuverters; adjust slew/curves in `config/mapping.yaml`.
+   - Default MIDI port: a virtual **DroneChorus** device. Override with `--midi-port MyHardware --no-virtual` if you want to hit a physical DIN box.
+   - Reuse the shared scaling map from `config/multi.yaml`; drop a YAML of tweaks via `--norm-overrides path/to/my_overrides.yaml`.
+4) **VCV Rack**: load `vcv/DroneChorus_Patch.vcv`, set the **Core MIDI‑CC** device to **DroneChorus**, Channel 1.
+5) **Fine tune**: ride attenuverters; if you need deeper changes, clone `config/multi.yaml` and point `--norm-config` at your remix.
 
-## Quickstart (multi‑drone, per‑channel)
+## Quickstart (multi‑drone, stage rig)
+This is what you launch when you’re spinning up the full chorus—multiple craft, locked CC maps, each on its own channel.
+
 ```bash
 ./scripts/launch_multi.sh
 ```
-- Edit `config/multi.yaml` (serials, channels).  
-- In Rack: one **MIDI‑CC** per drone, set channel 1..N.  
-- Load `vcv/DroneChorus_2Drones.vcv` as a template.
+- Edit `config/multi.yaml` (serial path per drone, 1‑based channel, optional `norm_overrides`).
+- The launcher spawns one thread per entry, all sharing the same smoothing map.
+- In Rack: instantiate one **MIDI‑CC** per drone and set channels 1..N.
+- Load `vcv/DroneChorus_2Drones.vcv` as a template and keep scaling consistent.
 
 * * *
 
