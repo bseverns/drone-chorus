@@ -1,10 +1,25 @@
 # Patch Cards
 
-One‑page descriptions of Rack setups. Each card = different musical persona.
+This directory is the trading-card deck for Drone Chorus patches. Each card (Markdown + PNG) is a storytelling tool you can hand to a collaborator, student, or future-you so they know how to fly the synth without guesswork.
 
-Include:
-- Patch name & screenshot (png)
-- Mapping highlights
-- Musical intent (what’s foreground, what’s support)
-- Notes on gain staging & ranges
+## What every card must include
+
+- **Patch name + screenshot (.png)** — capture the full Rack window with module labels visible.
+- **Telemetry mapping highlights** — which CCs hit which modules, and any attenuverters/offsets worth noting.
+- **Musical intent** — describe foreground vs. texture voices, and which gestures make it sing.
+- **Gain staging + safety notes** — headroom in Rack, limiter settings, and safe SPL targets.
+- **Setup quirks** — required Rack plugins, MIDI channels, or controller mappings beyond the defaults.
+
+## Workflow
+
+1. Clone an existing card or start from `TEMPLATE.md` if you add one.
+2. Export the Rack patch to `vcv/` and keep filenames in sync with the card.
+3. Drop screenshots into `vcv/cards/media/` (create the folder if missing) and link using relative paths.
+4. Commit both Markdown + media alongside any patch or config changes.
+
+## Teaching prompts
+
+- Have students annotate cards with sticky notes during rehearsal, then fold those annotations back into the Markdown after the session.
+- Create alternate versions of the same patch mapped for different drones/channels to illustrate ensemble arranging.
+- Encourage crews to log which card they flew in each session (`logs/`) so you can correlate sonic outcomes with telemetry data later.
 
