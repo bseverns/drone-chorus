@@ -21,6 +21,15 @@ as if you were plugged into the UART on the FC.
   - **Demonstrate** the project to folks without making them stare at a spinning
     death frisbee.
 
+### Record your own captures
+
+- Connect Betaflight Configurator or `betaflight-configurator --cli` and run `set msp_displayport = ON` if you need richer HUD data.
+- Use `scripts/capture_msp.sh` (coming soon) or `python -m serial.tools.miniterm --raw` to dump the serial stream to a file.
+- Name files with the format `YYYY-MM-DD_context.mspbin` and add a short README snippet noting flight mode, pack voltage range, and any anomalies.
+- Drop the file here and document it in the table above so collaborators know what sonic personality it carries.
+
+Keep props off for bench captures. If you must record in the field, secure the quad, remove props, and observe the same safety perimeter you would during live flights.
+
 ## Replaying the capture
 
 The short version: stream the file into a pseudo-serial port, point

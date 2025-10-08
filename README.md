@@ -4,6 +4,8 @@
 
 > No breadcrumbs? No problem. This README is the field manual. Open the playbooks below in order and you’ll know which script to run, which attenuverter to twist, and where the gremlins hide.
 
+**Mission statement**: build performance systems that are safe, legible, and remixable. That means every README doubles as a zine. Expect callouts on safety, assumptions, and hardware quirks right next to the fun bits.
+
 * * *
 
 ## How to tour this notebook (a.k.a. flight school)
@@ -23,9 +25,11 @@ Treat that order as gospel for newcomers: prototype → secure → rehearse → 
 * * *
 
 ## Why this repo
-- **Rapid pilot → ensemble**: start with one whoop and one voice; scale to 2–8 drones mapped to channels.  
-- **Open & reproducible**: Betaflight + Python + VCV Rack; no black boxes.  
+- **Rapid pilot → ensemble**: start with one whoop and one voice; scale to 2–8 drones mapped to channels.
+- **Open & reproducible**: Betaflight + Python + VCV Rack; no black boxes.
 - **Performance‑ready**: OBS scene collection ships with placeholders; relink and go.
+- **Safety obsessed**: airspace, audience, and hearing protection are treated like first-class features.
+- **Teaching-first**: every directory reads like a workshop handout so you can stand up a class or a club night without guessing.
 
 * * *
 
@@ -43,9 +47,34 @@ Treat that order as gospel for newcomers: prototype → secure → rehearse → 
 
 * * *
 
+## System snapshot (hardware + software stack)
+
+| Layer | What you need | Why it matters |
+| --- | --- | --- |
+| **Flight hardware** | Betaflight-based quad or whoop with MSP over USB/UART, throttle cap, angle-mode preset. | Stable telemetry keeps the MIDI smoothing honest; the throttle cap prevents accidental prop carnage indoors. |
+| **Ground station** | Laptop with Python 3.10+, audio interface or loopback device, and enough CPU headroom for VCV Rack. | The bridge and Rack patch run side by side—starve either and you’ll hear it. |
+| **Control surface** | Optional MIDI controller or knobs in Rack. | Lets you mix human gestures with telemetry for hybrid performances. |
+| **Audience rig** | OBS (or other broadcaster) plus monitor speakers or a PA with limiters. | Keeps levels under control and lets you document every run. |
+
+If you’re missing actual aircraft, lean on the [telemetry captures](obs/telemetry/README.md); they were recorded for workshops and regression testing.
+
+* * *
+
 ## Prereq: install Python before you launch anything
 - **Stop and install Python 3.10+ first.** The MSP→MIDI bridge runs on Python, so handle that before trying the quickstart scripts.
 - If you're not a coder (or just want a vibe-checked walkthrough), hit the [Setup Guide for Non-Coders](docs/SETUP_FOR_NONCODERS.md).
+
+* * *
+
+## Full software requirements (pin your environment)
+
+1. **Python deps** — install via `pip install -r software/midi-bridge/requirements.txt` to get pinned versions of `mido`, `pyserial`, and `PyYAML`.
+2. **VCV Rack 2** — Community edition works; load the starter patches and add your own modules.
+3. **Virtual MIDI loopback** — macOS IAC, Windows loopMIDI, or Linux ALSA `snd-virmidi`. The scripts auto-create a virtual port on macOS/Linux; Windows users should add one manually.
+4. **OBS 29+** — import the bundled scene collection for ready-to-roll streaming and recording.
+5. **Optional analysis tools** — `socat` and PySerial’s `miniterm` for log replay, `midimon` or `MIDI Monitor` to visualize CC output.
+
+Keep a `python -m venv .venv` around if you demo this for others; nothing tanks a workshop like conflicting site packages.
 
 * * *
 
@@ -98,8 +127,28 @@ lean on throttle so CC17 still animates your patch.
 
 * * *
 
+## Safety checklist highlights (read before props spin)
+
+- **Physical safety** — Follow the [Safety Checklist](docs/checklists/SAFETY.md). Indoors? Keep prop guards on, set throttle limits, and respect no-fly bubbles for the crew and audience.
+- **Hearing safety** — Gain-stage inside Rack using the patch cards, then set hard limiters in OBS or your interface. No surprise feedback loops.
+- **RF discipline** — Log every pack and channel in `logs/` so you can track interference trends and battery health.
+- **Data hygiene** — Treat the bridge like a live instrument. Keep cables tidy, label USB ports, and document any ad-hoc tweaks in the pilot log.
+
+Print the checklist and tape it to the flight case; we’re punk but not reckless.
+
+* * *
+
 ## OBS
 Import `obs/DroneChorus_SceneCollection.json`, then relink: **FPV Capture**, **VCV Rack (Window)**, **Program Audio**. Studio Mode recommended.
+
+* * *
+
+## Teaching / community toolkit
+
+- Run through the repo tour above, then hand folks the [Experience Playbook](docs/EXPERIENCE_PLAYBOOK.md) for drills.
+- Record each rehearsal in `logs/`—treat them as lab reports you can annotate later.
+- Encourage learners to fork the YAML maps, tweak ranges, and PR back their favorite voicings.
+- When in doubt, pair a newcomer with the telemetry playback flow so they can experiment without airspace stress.
 
 * * *
 
