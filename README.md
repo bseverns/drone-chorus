@@ -43,6 +43,12 @@ Treat that order as gospel for newcomers: prototype → secure → rehearse → 
 
 * * *
 
+## Prereq: install Python before you launch anything
+- **Stop and install Python 3.10+ first.** The MSP→MIDI bridge runs on Python, so handle that before trying the quickstart scripts.
+- If you're not a coder (or just want a vibe-checked walkthrough), hit the [Setup Guide for Non-Coders](docs/SETUP_FOR_NONCODERS.md).
+
+* * *
+
 ## Quickstart (single‑drone bench test)
 1) **Betaflight**: Angle mode, throttle cap, failsafe; MSP enabled on your USB/UART.
 2) **Deps**:
