@@ -59,6 +59,7 @@ pip install -r software/midi-bridge/requirements.txt
 ```bash
 python3 software/midi-bridge/msp_to_midi.py --serial /dev/ttyUSB0
 ```
+   - Swap `/dev/ttyUSB0` for your actual rig — skim [Find your MSP port](docs/CONTROL_STACK_PLAYBOOK.md#find-your-msp-port) if you need a refresher on sniffing the right device.
    - Default MIDI port: a virtual **DroneChorus** device. Override with `--midi-port MyHardware --no-virtual` if you want to hit a physical DIN box.
    - Reuse the shared scaling map from `config/multi.yaml`; drop a YAML of tweaks via `--norm-overrides path/to/my_overrides.yaml`.
 4) **VCV Rack**: load `vcv/DroneChorus_Patch.vcv`, set the **Core MIDI‑CC** device to **DroneChorus**, Channel 1.
