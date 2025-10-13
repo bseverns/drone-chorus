@@ -11,19 +11,56 @@ Flow overview:
 2. Load the YAML normalization spec and any overrides students want to try.
 3. Open or create a MIDI port using :mod:`mido`.
 4. Delegate to :func:`msp_bridge.run_bridge`, which handles the realtime loop.
+   That loop mirrors the multi-drone bridge by faking a gentle altitude ramp
+   from throttle whenever the craft never publishes ``MSP_ALTITUDE`` frames, so
+   CC17 keeps breathing even on minimal receivers.
 
 If you're teaching or learning from this code, skim the argument parser first;
 it documents every knob you can twist without touching the Python.
 """
 
 import argparse
+import struct
 import sys
+import time
 from typing import Any, Dict, Optional
 
 import mido
 import yaml
 
-from msp_bridge import run_bridge
+from msp_bridge import MSP_ALTITUDE, clamp, run_bridge
+
+
+def build_altitude_helpers():
+    """Mirror the multi-bridge altitude fallback for the solo CLI."""
+
+    last_altitude_update = 0.0
+    last_altitude_m = 0.0
+
+    def decode_altitude(state: Dict[str, float], payload: bytes) -> None:
+        """Populate ``state['altitude']`` from ``MSP_ALTITUDE`` payloads."""
+
+        nonlocal last_altitude_update, last_altitude_m
+        if len(payload) < 4:
+            return
+        altitude_cm = struct.unpack("<i", payload[:4])[0]
+        last_altitude_m = altitude_cm / 100.0
+        state["altitude"] = last_altitude_m
+        last_altitude_update = time.time()
+
+    def inject_altitude(state: Dict[str, float]) -> None:
+        """Ensure ``state['altitude']`` keeps moving even without baro data."""
+
+        nonlocal last_altitude_update, last_altitude_m
+        now = time.time()
+        if now - last_altitude_update > 1.0:
+            normalized = (state["throttle"] - 1000.0) / 1000.0
+            normalized = clamp(normalized, 0.0, 1.0)
+            state["altitude"] = normalized * 3.0
+        else:
+            state["altitude"] = last_altitude_m
+
+    return decode_altitude, inject_altitude
 
 
 def load_norm(config_path: str, key: Optional[str]) -> Dict[str, Dict[str, float]]:
@@ -135,6 +172,7 @@ def main() -> None:
     norm = load_norm(args.norm_config, norm_key)
     overrides = load_overrides(args.norm_overrides)
     midi_out = open_midi_output(args.midi_port, virtual=not args.no_virtual)
+    decode_altitude, inject_altitude = build_altitude_helpers()
 
     try:
         run_bridge(
@@ -145,6 +183,8 @@ def main() -> None:
             norm_overrides=overrides,
             poll_interval=args.poll_interval,
             idle_sleep=args.idle_sleep,
+            extra_state_handlers={MSP_ALTITUDE: decode_altitude},
+            state_hook=inject_altitude,
         )
     except KeyboardInterrupt:
         # Let ctrl+c exit without a stack trace—the performance should stay calm.
