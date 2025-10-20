@@ -154,8 +154,17 @@ def read_msp_frame(ser) -> Optional[tuple]:
         return None
     size = size_bytes[0]
     cmd = cmd_bytes[0]
-    data = ser.read(size)
-    ser.read(1)  # checksum throwaway
+    data = b""
+    # Walk the payload in a loop so a mid-frame timeout doesn't desync us by
+    # eating the checksum; we want to bail early and let the caller retry.
+    while len(data) < size:
+        chunk = ser.read(size - len(data))
+        if not chunk:
+            return None
+        data += chunk
+
+    if not ser.read(1):  # checksum throwaway
+        return None
     return cmd, data
 
 
