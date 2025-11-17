@@ -37,6 +37,7 @@ Treat that order as gospel for newcomers: prototype → secure → rehearse → 
 ```
 .
 ├─ config/                    # YAML maps (single & multi-drone)
+├─ data/                      # README + generator for sample MSP logs
 ├─ docs/                      # Playbooks, ledger, UX map, mappings
 ├─ software/
 │  └─ midi-bridge/            # MSP→MIDI (single + multi)
@@ -56,7 +57,7 @@ Treat that order as gospel for newcomers: prototype → secure → rehearse → 
 | **Control surface** | Optional MIDI controller or knobs in Rack. | Lets you mix human gestures with telemetry for hybrid performances. |
 | **Audience rig** | OBS (or other broadcaster) plus monitor speakers or a PA with limiters. | Keeps levels under control and lets you document every run. |
 
-If you’re missing actual aircraft, lean on the [telemetry captures](obs/telemetry/README.md); they were recorded for workshops and regression testing.
+If you’re missing actual aircraft, lean on the [telemetry captures](obs/telemetry/README.md) and the curated [sample logs](data/README.md); they were recorded for workshops and regression testing.
 
 * * *
 
@@ -104,6 +105,30 @@ This is what you launch when you’re spinning up the full chorus—multiple cra
 - The launcher spawns one thread per entry, all sharing the same smoothing map.
 - In Rack: instantiate one **MIDI‑CC** per drone and set channels 1..N.
 - Load `vcv/DroneChorus_2Drones.vcv` as a template and keep scaling consistent.
+
+## MSP log replay pipeline (one command)
+
+Need proof that the MSP→MIDI path works without props spinning? First, rebuild
+the sample `.mspbin` captures (they live as base64 inside the repo to avoid
+committing binaries):
+
+```bash
+python scripts/generate_sample_logs.py
+```
+
+Then pair the workshop logs in [`data/`](data/README.md) with the replay helper:
+
+```bash
+python examples/replay_log.py data/example_log_01.mspbin --verbose
+```
+
+That single command spins up a virtual **DroneChorus-Replay** MIDI port,
+re-emits CC14–20 + CC64 in real time, and optionally dumps the normalized state
+to stdout so you can watch altitude, voltage, and throttle move. Patch that
+virtual port into VCV Rack (or your DAW) just like the live rig. Want to change
+how the telemetry feels? Edit the `norm` section in `config/mapping.yaml`
+(slews, ranges, curves) and re-run the command; it’s the fastest way to teach
+students how scaling math translates into musical gesture.
 
 * * *
 
