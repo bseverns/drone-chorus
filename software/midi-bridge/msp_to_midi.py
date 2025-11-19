@@ -20,49 +20,13 @@ it documents every knob you can twist without touching the Python.
 """
 
 import argparse
-import struct
 import sys
-import time
 from typing import Any, Dict, Optional
 
 import mido
 import yaml
 
-from msp_bridge import MSP_ALTITUDE, clamp, run_bridge
-
-
-def build_altitude_helpers():
-    """Mirror the multi-bridge altitude fallback for the solo CLI."""
-
-    last_altitude_update = 0.0
-    last_altitude_m = 0.0
-
-    def decode_altitude(state: Dict[str, float], payload: bytes) -> None:
-        """Populate ``state['altitude']`` from ``MSP_ALTITUDE`` payloads."""
-
-        nonlocal last_altitude_update, last_altitude_m
-        if len(payload) < 4:
-            return
-        altitude_cm = struct.unpack("<i", payload[:4])[0]
-        last_altitude_m = altitude_cm / 100.0
-        state["altitude"] = last_altitude_m
-        last_altitude_update = time.time()
-
-    def inject_altitude(state: Dict[str, float]) -> None:
-        """Ensure ``state['altitude']`` keeps moving even without baro data."""
-
-        nonlocal last_altitude_update, last_altitude_m
-        now = time.time()
-        if now - last_altitude_update > 1.0:
-            normalized = (state["throttle"] - 1000.0) / 1000.0
-            normalized = clamp(normalized, 0.0, 1.0)
-            state["altitude"] = normalized * 3.0
-        else:
-            state["altitude"] = last_altitude_m
-
-    return decode_altitude, inject_altitude
-
-
+from msp_bridge import MSP_ALTITUDE, build_altitude_helpers, run_bridge
 def load_norm(config_path: str, key: Optional[str]) -> Dict[str, Dict[str, float]]:
     """Load a normalization block from ``config_path``.
 
