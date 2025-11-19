@@ -23,10 +23,19 @@ as if you were plugged into the UART on the FC.
 
 ### Record your own captures
 
-- Connect Betaflight Configurator or `betaflight-configurator --cli` and run `set msp_displayport = ON` if you need richer HUD data.
-- Use `scripts/capture_msp.sh` (coming soon) or `python -m serial.tools.miniterm --raw` to dump the serial stream to a file.
-- Name files with the format `YYYY-MM-DD_context.mspbin` and add a short README snippet noting flight mode, pack voltage range, and any anomalies.
-- Drop the file here and document it in the table above so collaborators know what sonic personality it carries.
+1. **Prep the flight controller.** Connect Betaflight Configurator (GUI or `betaflight-configurator --cli`) and run `set msp_displayport = ON` if you want richer HUD vibes piped over MSP.
+2. **Wire it up on the bench.** USB tether the quad, props off, and clamp the frame if you're anywhere near spooled motors. MSP logging is chill, but a flailing quad is still a blender.
+3. **Fire up the capture script.** We now ship a helper that wraps `python -m serial.tools.miniterm --raw` and drops a timestamped `.mspbin` wherever you tell it:
+
+   ```bash
+   scripts/capture_msp.sh /dev/ttyUSB0 obs/telemetry
+   # On Windows PowerShell (through Git Bash/WSL):
+   # MSP_BAUD=1000000 scripts/capture_msp.sh COM5 C:/captures
+   ```
+
+   The second argument can be a directory (the script invents `YYYYMMDD-hhmmss_PORT.mspbin`) or an explicit file path if you want to curate the name yourself. Override the baud rate by exporting `MSP_BAUD` before running the script.
+4. **If the script isn't your jam**, the raw command it wraps is `python -m serial.tools.miniterm --raw <PORT> <BAUD> > yourfile.mspbin`. Just be sure to disable any terminal line endings that might corrupt the binary.
+5. **Document it.** Name files with the format `YYYY-MM-DD_context.mspbin`, add a few bullets about flight mode, pack voltage range, and any weirdness you noticed, then drop it in this folder and update the table above so future bridge jockeys know what tone palette they're about to ingest.
 
 Keep props off for bench captures. If you must record in the field, secure the quad, remove props, and observe the same safety perimeter you would during live flights.
 
