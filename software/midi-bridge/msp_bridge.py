@@ -25,7 +25,7 @@ with intent and the data it touches.
 
 import struct
 import time
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Tuple
 
 import mido
 import serial
@@ -181,6 +181,43 @@ def build_mapper(norm: Dict[str, Dict[str, float]], overrides: Optional[Dict] = 
         for key, values in overrides.items():
             merged.setdefault(key, {}).update(values)
     return Mapper(merged)
+
+
+def build_altitude_helpers(
+    *, time_source: Callable[[], float] = time.time
+) -> Tuple[
+    Callable[[Dict[str, float], bytes], None],
+    Callable[[Dict[str, float]], None],
+]:
+    """Return ``(decode_altitude, inject_altitude)`` helpers with shared state."""
+
+    last_altitude_update = 0.0
+    last_altitude_m = 0.0
+
+    def decode_altitude(state: Dict[str, float], payload: bytes) -> None:
+        """Populate ``state['altitude']`` from ``MSP_ALTITUDE`` payloads."""
+
+        nonlocal last_altitude_update, last_altitude_m
+        if len(payload) < 4:
+            return
+        altitude_cm = struct.unpack("<i", payload[:4])[0]
+        last_altitude_m = altitude_cm / 100.0
+        state["altitude"] = last_altitude_m
+        last_altitude_update = time_source()
+
+    def inject_altitude(state: Dict[str, float]) -> None:
+        """Ensure ``state['altitude']`` keeps moving even without baro data."""
+
+        nonlocal last_altitude_update, last_altitude_m
+        now = time_source()
+        if now - last_altitude_update > 1.0:
+            normalized = (state["throttle"] - 1000.0) / 1000.0
+            normalized = clamp(normalized, 0.0, 1.0)
+            state["altitude"] = normalized * 3.0
+        else:
+            state["altitude"] = last_altitude_m
+
+    return decode_altitude, inject_altitude
 
 
 def update_state_from_msp(state: Dict[str, float], cmd: int, data: bytes) -> None:

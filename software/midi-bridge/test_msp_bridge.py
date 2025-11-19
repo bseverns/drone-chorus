@@ -1,3 +1,4 @@
+import struct
 import sys
 from pathlib import Path
 
@@ -8,7 +9,20 @@ MODULE_DIR = Path(__file__).resolve().parent
 if str(MODULE_DIR) not in sys.path:
     sys.path.insert(0, str(MODULE_DIR))
 
-from msp_bridge import read_msp_frame  # noqa: E402
+import msp_bridge  # noqa: E402
+from msp_bridge import (  # noqa: E402
+    MSP_ANALOG,
+    MSP_ALTITUDE,
+    MSP_ATTITUDE,
+    MSP_RC,
+    Mapper,
+    _CC_MAPPING,
+    _STATE_TEMPLATE,
+    build_altitude_helpers,
+    emit_state_cc,
+    read_msp_frame,
+    update_state_from_msp,
+)
 
 
 class ScriptedSerial:
@@ -26,6 +40,40 @@ class ScriptedSerial:
                 f"Script attempted to return {len(chunk)} bytes for read({n})"
             )
         return chunk
+
+
+class IdentitySmoother:
+    """Bypass smoother that simply echoes the mapped value."""
+
+    def step(self, value):
+        return value
+
+
+class FakeMidiMessage:
+    def __init__(self, type, channel, control, value):
+        self.type = type
+        self.channel = channel
+        self.control = control
+        self.value = value
+
+
+class FakeMidiOut:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, message):
+        self.sent.append(message)
+
+
+class TimeMachine:
+    def __init__(self):
+        self.now = 0.0
+
+    def jump(self, value):
+        self.now = value
+
+    def time(self):
+        return self.now
 
 
 def test_read_msp_frame_success():
@@ -72,3 +120,137 @@ def test_read_msp_frame_timeout_preserves_alignment():
 
     assert cmd == 0x33
     assert payload == b""
+
+
+def test_mapper_norm01_linear_scaling():
+    mapper = Mapper({"roll": {"min": -180.0, "max": 180.0}})
+    mapper._smoothers["roll"] = IdentitySmoother()
+
+    assert mapper.norm01("roll", 0.0) == pytest.approx(0.5)
+    assert mapper.norm01("roll", 360.0) == pytest.approx(1.0)
+
+
+def test_mapper_norm01_expo_curve():
+    mapper = Mapper({"yaw": {"min": 0.0, "max": 100.0, "curve": "expo"}})
+    mapper._smoothers["yaw"] = IdentitySmoother()
+
+    result = mapper.norm01("yaw", 25.0)
+    normalized = 0.25
+    shaped = (abs(normalized - 0.5) * 2) ** 1.3
+    shaped *= -1
+    expected = shaped * 0.5 + 0.5
+    assert result == pytest.approx(expected)
+
+
+def test_mapper_norm01_respects_custom_slew():
+    mapper = Mapper({"pitch": {"min": -90.0, "max": 90.0, "slew": 0.1}})
+    smoother = mapper._smoothers["pitch"]
+    smoother._y = 0.2  # type: ignore[attr-defined]
+
+    assert mapper.norm01("pitch", 90.0) == pytest.approx(0.3)
+
+
+def test_update_state_from_msp_decodes_core_payloads():
+    state = dict(_STATE_TEMPLATE)
+
+    update_state_from_msp(state, MSP_ATTITUDE, struct.pack("<hhh", 100, -50, 0))
+    assert state["roll"] == pytest.approx(10.0)
+    assert state["pitch"] == pytest.approx(-5.0)
+
+    rc_payload = struct.pack("<8H", 1000, 1500, 1600, 1800, 0, 0, 0, 0)
+    update_state_from_msp(state, MSP_RC, rc_payload)
+    assert state["throttle"] == 1600
+    expected_yaw = (1800 - 1500) / 500.0 * 200.0
+    assert state["yaw"] == pytest.approx(expected_yaw)
+
+    altitude_payload = struct.pack("<i", 250)
+    update_state_from_msp(state, MSP_ALTITUDE, altitude_payload)
+    assert state["altitude"] == pytest.approx(2.5)
+
+    analog_payload = bytes([42, 0, 0, 88, 0, 0, 0])
+    update_state_from_msp(state, MSP_ANALOG, analog_payload)
+    assert state["vbat"] == pytest.approx(4.2)
+    assert state["rssi"] == 88
+
+
+def test_emit_state_cc_publishes_all_controllers(monkeypatch):
+    spec = {key: {"min": 0.0, "max": 1.0} for key in _CC_MAPPING}
+    mapper = Mapper(spec)
+    state = dict(_STATE_TEMPLATE)
+    state.update({
+        "roll": 0.0,
+        "pitch": 0.0,
+        "yaw": 0.0,
+        "altitude": 0.0,
+        "rssi": 0.0,
+        "vbat": 0.0,
+        "throttle": 1200,
+    })
+    norm_values = {
+        "roll": 0.0,
+        "pitch": 0.5,
+        "yaw": 0.25,
+        "altitude": 0.75,
+        "rssi": 1.0,
+        "vbat": 0.1,
+        "throttle": 0.9,
+    }
+
+    def fake_norm01(key, value):
+        assert value == state[key]
+        return norm_values[key]
+
+    mapper.norm01 = fake_norm01  # type: ignore[assignment]
+    monkeypatch.setattr(msp_bridge.mido, "Message", FakeMidiMessage)
+    midi_out = FakeMidiOut()
+
+    emit_state_cc(midi_out, mapper, 2, state)
+
+    assert len(midi_out.sent) == len(_CC_MAPPING) + 1
+    for message, (key, control) in zip(midi_out.sent[:-1], _CC_MAPPING.items()):
+        assert message.type == "control_change"
+        assert message.channel == 2
+        assert message.control == control
+        assert message.value == int(norm_values[key] * 127)
+    gate = midi_out.sent[-1]
+    assert gate.control == 64
+    assert gate.value == 127
+
+
+def test_emit_state_cc_gate_closes_below_idle(monkeypatch):
+    mapper = Mapper({key: {"min": 0.0, "max": 1.0} for key in _CC_MAPPING})
+    state = dict(_STATE_TEMPLATE)
+    state["throttle"] = 1000
+
+    mapper.norm01 = lambda key, value: 0.0  # type: ignore[assignment]
+    monkeypatch.setattr(msp_bridge.mido, "Message", FakeMidiMessage)
+    midi_out = FakeMidiOut()
+
+    emit_state_cc(midi_out, mapper, 0, state)
+
+    gate = midi_out.sent[-1]
+    assert gate.control == 64
+    assert gate.value == 0
+
+
+def test_altitude_helpers_switch_between_baro_and_throttle():
+    clock = TimeMachine()
+    decode_altitude, inject_altitude = build_altitude_helpers(time_source=clock.time)
+    state = {"altitude": 0.0, "throttle": 1300.0}
+
+    clock.jump(5.0)
+    inject_altitude(state)
+    assert state["altitude"] == pytest.approx(((1300.0 - 1000.0) / 1000.0) * 3.0)
+
+    clock.jump(5.2)
+    decode_altitude(state, struct.pack("<i", int(2.5 * 100)))
+    assert state["altitude"] == pytest.approx(2.5)
+
+    clock.jump(5.7)
+    inject_altitude(state)
+    assert state["altitude"] == pytest.approx(2.5)
+
+    state["throttle"] = 900.0
+    clock.jump(7.5)
+    inject_altitude(state)
+    assert state["altitude"] == 0.0
