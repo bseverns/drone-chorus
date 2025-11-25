@@ -4,7 +4,7 @@ This directory is the trading-card deck for Drone Chorus patches. Each card (Mar
 
 ## What every card must include
 
-- **Patch name + screenshot (.png)** — capture the full Rack window with module labels visible.
+- **Patch name + screenshot (.png or .svg)** — capture the full Rack window with module labels visible. SVGs are preferred in PRs to keep diffs text-only; wrap PNG data inside an SVG if needed.
 - **Telemetry mapping highlights** — which CCs hit which modules, and any attenuverters/offsets worth noting.
 - **Musical intent** — describe foreground vs. texture voices, and which gestures make it sing.
 - **Gain staging + safety notes** — headroom in Rack, limiter settings, and safe SPL targets.
