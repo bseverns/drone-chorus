@@ -6,7 +6,7 @@
       .box { fill: #111827; stroke: #ffffff; stroke-width: 3; rx: 10; ry: 10; }
       .arrow { stroke: #10b981; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
       .label { fill: #e5e7eb; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; font-weight: 600; }
-      .small { font-size: 12px; font-weight: 500; }
+      .small { font-size: 12px; stroke: #ffffff; font-weight: 500; }
     </style>
     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#10b981" />
