@@ -52,10 +52,12 @@ before you start hacking; future-you (and your collaborators) will thank you.
 
 ## Bench playback (no props required)
 
-You can rehearse the entire MSP→MIDI chain without powering a quad. The trick is
-to fake a serial port, squirt the capture through it, and let the bridge chew on
-the bytes. Below are battle-tested recipes for each OS using `socat` and
-`python -m serial.tools.miniterm` so students can follow along with stock tools.
+This is the canonical home for the per-OS bench-playback recipes—one set of
+commands to rule them all. You can rehearse the entire MSP→MIDI chain without
+powering a quad. The trick is to fake a serial port, squirt the capture through
+it, and let the bridge chew on the bytes. Below are battle-tested recipes for
+each OS using `socat` and `python -m serial.tools.miniterm` so students can
+follow along with stock tools.
 
 ### Linux (Debian/Ubuntu)
 
