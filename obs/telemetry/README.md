@@ -25,19 +25,21 @@ as if you were plugged into the UART on the FC.
 
 1. **Prep the flight controller.** Connect Betaflight Configurator (GUI or `betaflight-configurator --cli`) and run `set msp_displayport = ON` if you want richer HUD vibes piped over MSP.
 2. **Wire it up on the bench.** USB tether the quad, props off, and clamp the frame if you're anywhere near spooled motors. MSP logging is chill, but a flailing quad is still a blender.
-3. **Fire up the capture script.** We now ship a helper that wraps `python -m serial.tools.miniterm --raw` and drops a timestamped `.mspbin` wherever you tell it:
+3. **Fire up the capture script.** We ship `scripts/capture_msp.sh`, a thin wrapper around `python -m serial.tools.miniterm --raw` that spits a timestamped `.mspbin` wherever you point it. Examples (pyserial required):
 
    ```bash
+   # default 115200 baud, drops obs/telemetry/20240101-235959_ttyUSB0.mspbin
    scripts/capture_msp.sh /dev/ttyUSB0 obs/telemetry
-   # On Windows PowerShell (through Git Bash/WSL):
-   # MSP_BAUD=1000000 scripts/capture_msp.sh COM5 C:/captures
+
+   # crank the baud to a million on a Windows COM port, naming the file yourself
+   MSP_BAUD=1000000 scripts/capture_msp.sh COM5 logs/custom_hover.mspbin
    ```
 
-   The second argument can be a directory (the script invents `YYYYMMDD-hhmmss_PORT.mspbin`) or an explicit file path if you want to curate the name yourself. Override the baud rate by exporting `MSP_BAUD` before running the script.
-4. **If the script isn't your jam**, the raw command it wraps is `python -m serial.tools.miniterm --raw <PORT> <BAUD> > yourfile.mspbin`. Just be sure to disable any terminal line endings that might corrupt the binary.
+   The second argument can be a directory (the script invents `YYYYMMDD-hhmmss_PORT.mspbin`) or an explicit file path if you want to curate the name yourself. The script refuses to overwrite files on purpose; move or rename anything precious first.
+4. **Skip the helper if you want.** The raw command is `python -m serial.tools.miniterm --raw <PORT> <BAUD> > yourfile.mspbin`. Turn off terminal translations/line endings if your shell tries to be “helpful” with binary streams.
 5. **Document it.** Name files with the format `YYYY-MM-DD_context.mspbin`, add a few bullets about flight mode, pack voltage range, and any weirdness you noticed, then drop it in this folder and update the table above so future bridge jockeys know what tone palette they're about to ingest.
 
-Keep props off for bench captures. If you must record in the field, secure the quad, remove props, and observe the same safety perimeter you would during live flights.
+Keep props off for bench captures. If you must record in the field, secure the quad, remove props, and observe the same safety perimeter you would during live flights. Tape a note to the lipo that says “NO PROPS” if you’re forgetful—future-you is clumsy.
 
 ## Replaying the capture
 
