@@ -15,7 +15,7 @@ from typing import Any, Dict
 import mido
 import yaml
 
-from msp_bridge import MSP_ALTITUDE, build_altitude_helpers, run_bridge
+from msp_bridge import build_altitude_consumers, run_bridge
 
 
 def worker(
@@ -28,7 +28,7 @@ def worker(
 
     # Altitude strategy: prefer MSP_ALTITUDE (baro / fusion estimate) and fall back
     # to a throttle-derived ramp if the craft never publishes barometric data.
-    decode_altitude, inject_altitude = build_altitude_helpers()
+    inject_altitude, extra_handlers = build_altitude_consumers()
 
     run_bridge(
         drone["serial"],
@@ -38,7 +38,7 @@ def worker(
         norm_overrides=drone.get("norm_overrides"),
         stop_event=stop_event,
         state_hook=inject_altitude,
-        extra_state_handlers={MSP_ALTITUDE: decode_altitude},
+        extra_state_handlers=extra_handlers,
     )
 
 

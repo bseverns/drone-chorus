@@ -26,7 +26,7 @@ from typing import Any, Dict, Optional
 import mido
 import yaml
 
-from msp_bridge import MSP_ALTITUDE, build_altitude_helpers, run_bridge
+from msp_bridge import build_altitude_consumers, run_bridge
 def load_norm(config_path: str, key: Optional[str]) -> Dict[str, Dict[str, float]]:
     """Load a normalization block from ``config_path``.
 
@@ -136,7 +136,7 @@ def main() -> None:
     norm = load_norm(args.norm_config, norm_key)
     overrides = load_overrides(args.norm_overrides)
     midi_out = open_midi_output(args.midi_port, virtual=not args.no_virtual)
-    decode_altitude, inject_altitude = build_altitude_helpers()
+    inject_altitude, extra_handlers = build_altitude_consumers()
 
     try:
         run_bridge(
@@ -147,7 +147,7 @@ def main() -> None:
             norm_overrides=overrides,
             poll_interval=args.poll_interval,
             idle_sleep=args.idle_sleep,
-            extra_state_handlers={MSP_ALTITUDE: decode_altitude},
+            extra_state_handlers=extra_handlers,
             state_hook=inject_altitude,
         )
     except KeyboardInterrupt:

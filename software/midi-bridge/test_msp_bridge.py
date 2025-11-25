@@ -18,7 +18,7 @@ from msp_bridge import (  # noqa: E402
     Mapper,
     _CC_MAPPING,
     _STATE_TEMPLATE,
-    build_altitude_helpers,
+    build_altitude_consumers,
     emit_state_cc,
     read_msp_frame,
     update_state_from_msp,
@@ -45,8 +45,31 @@ class ScriptedSerial:
 class IdentitySmoother:
     """Bypass smoother that simply echoes the mapped value."""
 
+    def __init__(self):
+        self.seen = []
+
     def step(self, value):
+        self.seen.append(value)
         return value
+
+
+class StubSmoother:
+    """Configurable smoother for deterministic slew tests."""
+
+    def __init__(self, slew=0.05, start=None):
+        self._slew = slew
+        self._y = start
+
+    def step(self, value):
+        # Reuse the production slew math to ensure parity with real runs.
+        from msp_bridge import clamp  # local import to avoid global patching
+
+        if self._y is None:
+            self._y = value
+            return value
+        delta = clamp(value - self._y, -self._slew, self._slew)
+        self._y += delta
+        return self._y
 
 
 class FakeMidiMessage:
@@ -122,32 +145,38 @@ def test_read_msp_frame_timeout_preserves_alignment():
     assert payload == b""
 
 
-def test_mapper_norm01_linear_scaling():
-    mapper = Mapper({"roll": {"min": -180.0, "max": 180.0}})
+def test_mapper_norm01_linear_and_expo_paths_share_shape_math():
+    mapper = Mapper(
+        {
+            "roll": {"min": -180.0, "max": 180.0},
+            "yaw": {"min": 0.0, "max": 100.0, "curve": "expo"},
+        }
+    )
     mapper._smoothers["roll"] = IdentitySmoother()
-
-    assert mapper.norm01("roll", 0.0) == pytest.approx(0.5)
-    assert mapper.norm01("roll", 360.0) == pytest.approx(1.0)
-
-
-def test_mapper_norm01_expo_curve():
-    mapper = Mapper({"yaw": {"min": 0.0, "max": 100.0, "curve": "expo"}})
     mapper._smoothers["yaw"] = IdentitySmoother()
 
-    result = mapper.norm01("yaw", 25.0)
+    linear = mapper.norm01("roll", 0.0)
+    assert linear == pytest.approx(0.5)
+    expo = mapper.norm01("yaw", 25.0)
+
     normalized = 0.25
     shaped = (abs(normalized - 0.5) * 2) ** 1.3
     shaped *= -1
-    expected = shaped * 0.5 + 0.5
-    assert result == pytest.approx(expected)
+    expected_expo = shaped * 0.5 + 0.5
+
+    assert mapper._smoothers["roll"].seen == [0.5]
+    assert mapper._smoothers["yaw"].seen == [pytest.approx(expected_expo)]
+    assert expo == pytest.approx(expected_expo)
 
 
-def test_mapper_norm01_respects_custom_slew():
+def test_mapper_norm01_respects_per_parameter_slew_limits():
     mapper = Mapper({"pitch": {"min": -90.0, "max": 90.0, "slew": 0.1}})
-    smoother = mapper._smoothers["pitch"]
-    smoother._y = 0.2  # type: ignore[attr-defined]
+    mapper._smoothers["pitch"] = StubSmoother(slew=0.1, start=0.2)
 
+    # Target normalized value would be 1.0 without slew; limiter should step by 0.1.
     assert mapper.norm01("pitch", 90.0) == pytest.approx(0.3)
+    # Second step keeps gliding toward the target.
+    assert mapper.norm01("pitch", 90.0) == pytest.approx(0.4)
 
 
 def test_update_state_from_msp_decodes_core_payloads():
@@ -235,21 +264,26 @@ def test_emit_state_cc_gate_closes_below_idle(monkeypatch):
 
 def test_altitude_helpers_switch_between_baro_and_throttle():
     clock = TimeMachine()
-    decode_altitude, inject_altitude = build_altitude_helpers(time_source=clock.time)
+    inject_altitude, extra_handlers = build_altitude_consumers(time_source=clock.time)
+    assert MSP_ALTITUDE in extra_handlers
     state = {"altitude": 0.0, "throttle": 1300.0}
 
+    # Without baro data the throttle-derived ramp should kick in after 1s.
     clock.jump(5.0)
     inject_altitude(state)
-    assert state["altitude"] == pytest.approx(((1300.0 - 1000.0) / 1000.0) * 3.0)
+    expected_ramp = ((1300.0 - 1000.0) / 1000.0) * 3.0
+    assert state["altitude"] == pytest.approx(expected_ramp)
 
+    # A barometer payload should overwrite the ramp and freeze for <1s.
     clock.jump(5.2)
-    decode_altitude(state, struct.pack("<i", int(2.5 * 100)))
+    extra_handlers[MSP_ALTITUDE](state, struct.pack("<i", int(2.5 * 100)))
     assert state["altitude"] == pytest.approx(2.5)
 
     clock.jump(5.7)
     inject_altitude(state)
     assert state["altitude"] == pytest.approx(2.5)
 
+    # Past the stale threshold the ramp should resume using the latest throttle.
     state["throttle"] = 900.0
     clock.jump(7.5)
     inject_altitude(state)
