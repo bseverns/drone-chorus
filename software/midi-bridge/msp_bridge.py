@@ -220,6 +220,21 @@ def build_altitude_helpers(
     return decode_altitude, inject_altitude
 
 
+def build_altitude_consumers(
+    *, time_source: Callable[[], float] = time.time
+) -> Tuple[Callable[[Dict[str, float]], None], Dict[int, Callable[[Dict[str, float], bytes], None]]]:
+    """Package altitude helpers for easy use in bridge callers.
+
+    The CLI entrypoints both need the same combo: a state hook that injects a
+    fallback ramp when barometer data disappears, and an MSP handler to decode
+    ``MSP_ALTITUDE`` payloads when they *do* show up. Returning them together
+    keeps tests and consumers aligned on the intended behavior.
+    """
+
+    decode_altitude, inject_altitude = build_altitude_helpers(time_source=time_source)
+    return inject_altitude, {MSP_ALTITUDE: decode_altitude}
+
+
 def update_state_from_msp(state: Dict[str, float], cmd: int, data: bytes) -> None:
     """Decode MSP payloads into the ``state`` dictionary.
 
