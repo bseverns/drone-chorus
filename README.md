@@ -2,6 +2,10 @@
 
 **Drone Chorus** turns FPV flight into **modulation you can hear**. We read Betaflight telemetry, smooth it into **MIDI CC** on a virtual port, and let a **VCV Rack** patch sing with it. Think of it as a polite feedback loop between **airframe dynamics** and **synth architecture**.
 
+![Telemetry-to-MIDI flow](docs/architecture.svg)
+
+The diagram above keeps the signal chain honest: Betaflight MSP frames roll through `msp_bridge.py` for smoothing and normalization (the YAML in `config/` is the gospel), the CLI launchers (`msp_to_midi.py`, `msp_multi_to_midi.py`) light up a virtual/physical MIDI port, and CC14–20 plus CC64 ride into Rack patches or OBS overlays.
+
 > No breadcrumbs? No problem. This README is the field manual. Open the playbooks below in order and you’ll know which script to run, which attenuverter to twist, and where the gremlins hide.
 
 **Mission statement**: build performance systems that are safe, legible, and remixable. That means every README doubles as a zine. Expect callouts on safety, assumptions, and hardware quirks right next to the fun bits.
