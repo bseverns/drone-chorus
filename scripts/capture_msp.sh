@@ -3,14 +3,16 @@
 # capture_msp.sh - Record MSP telemetry from a serial port into a timestamped
 #                  .mspbin file using pyserial's miniterm.
 #
-# Usage examples:
+# Usage examples (props off, bench clamp on):
 #   scripts/capture_msp.sh /dev/ttyUSB0 obs/telemetry
-#   scripts/capture_msp.sh COM5 logs/custom_hover.mspbin
+#   MSP_BAUD=1000000 scripts/capture_msp.sh COM5 logs/custom_hover.mspbin
 #
-# The first argument is the serial port (whatever you point Betaflight Configurator at).
-# The second argument is either a directory (where the script will drop
-# TIMESTAMP_port.mspbin) or a full path to the desired .mspbin file. Override the
-# default 115200 baud rate by setting MSP_BAUD before running the script.
+# The first argument is the serial port (whatever you point Betaflight
+# Configurator at). The second argument is either a directory (where the script
+# will drop TIMESTAMP_port.mspbin) or a full path to the desired .mspbin file.
+# Override the default 115200 baud rate by setting MSP_BAUD before running the
+# script. You need Python and pyserial installed so `python -m
+# serial.tools.miniterm` exists.
 #
 # The script prints status messages to stdout, but the binary capture stays in
 # the generated .mspbin file so you can replay it later.
@@ -48,6 +50,13 @@ if [[ -e "$OUT_FILE" ]]; then
 fi
 
 command -v python >/dev/null 2>&1 || { echo "python is required." >&2; exit 3; }
+python - <<'PYCHECK' || { echo "pyserial (serial.tools.miniterm) is required." >&2; exit 3; }
+import importlib.util
+import sys
+
+if importlib.util.find_spec("serial.tools.miniterm") is None:
+    sys.exit("serial.tools.miniterm not found; install pyserial")
+PYCHECK
 
 finish() {
   local exit_code=$?
