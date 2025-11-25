@@ -106,6 +106,14 @@ This is what you launch when you’re spinning up the full chorus—multiple cra
 - In Rack: instantiate one **MIDI‑CC** per drone and set channels 1..N.
 - Load `vcv/DroneChorus_2Drones.vcv` as a template and keep scaling consistent.
 
+### Bench playback cheat-sheet (per OS)
+Prefer to rehearse with the quad unplugged? The canonical, platform-specific
+recipes live under
+[`software/midi-bridge/README.md`](software/midi-bridge/README.md#bench-playback-no-props-required).
+Follow them with the bundled `obs/telemetry/bench_hover.mspbin` capture or the
+rehydrated samples from `data/` and you’ll exercise the exact same MSP→MIDI
+path the quickstart uses.
+
 ## MSP log replay pipeline (one command)
 
 Need proof that the MSP→MIDI path works without props spinning? First, rebuild
