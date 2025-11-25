@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">Drone Chorus telemetry-to-MIDI flow</title>
+  <desc id="desc">Betaflight MSP frames travel through the msp_bridge smoothing and normalization, then through CLI launchers to a MIDI port and onward to VCV Rack patches or OBS scenes. CC map references 14-20 and 64 and YAML normalization config.</desc>
+  <defs>
+    <style>
+      .box { fill: #111827; stroke: #10b981; stroke-width: 3; rx: 10; ry: 10; }
+      .arrow { stroke: #10b981; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
+      .label { fill: #e5e7eb; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; font-weight: 600; }
+      .small { font-size: 12px; font-weight: 500; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981" />
+    </marker>
+  </defs>
+
+  <!-- Betaflight source -->
+  <rect class="box" x="30" y="120" width="170" height="120" />
+  <text class="label" x="115" y="165" text-anchor="middle">Betaflight FC</text>
+  <text class="small" x="115" y="190" text-anchor="middle">MSP frames @115200</text>
+  <text class="small" x="115" y="210" text-anchor="middle">roll/pitch/yaw + RSSI/voltage</text>
+
+  <!-- msp_bridge -->
+  <rect class="box" x="240" y="90" width="190" height="180" />
+  <text class="label" x="335" y="135" text-anchor="middle">msp_bridge.py</text>
+  <text class="small" x="335" y="160" text-anchor="middle">smoothing (slew clamp)</text>
+  <text class="small" x="335" y="180" text-anchor="middle">normalization map</text>
+  <text class="small" x="335" y="200" text-anchor="middle">`config/multi.yaml` + overrides</text>
+  <text class="small" x="335" y="220" text-anchor="middle">Publishes CC14–20, CC64</text>
+
+  <!-- CLI launchers -->
+  <rect class="box" x="470" y="70" width="200" height="220" />
+  <text class="label" x="570" y="110" text-anchor="middle">CLI launchers</text>
+  <text class="small" x="570" y="135" text-anchor="middle">`msp_to_midi.py` (single)</text>
+  <text class="small" x="570" y="155" text-anchor="middle">`msp_multi_to_midi.py` (multi)</text>
+  <text class="small" x="570" y="175" text-anchor="middle">loads norm YAML, merges overrides</text>
+  <text class="small" x="570" y="195" text-anchor="middle">spins bridge threads</text>
+  <text class="small" x="570" y="215" text-anchor="middle">opens virtual/physical MIDI port</text>
+
+  <!-- MIDI port -->
+  <rect class="box" x="720" y="120" width="180" height="120" />
+  <text class="label" x="810" y="160" text-anchor="middle">MIDI Port</text>
+  <text class="small" x="810" y="185" text-anchor="middle">DroneChorus / loopMIDI / IAC</text>
+  <text class="small" x="810" y="205" text-anchor="middle">CC14–20 map motion</text>
+
+  <!-- Downstream targets -->
+  <rect class="box" x="720" y="20" width="200" height="60" />
+  <text class="label" x="820" y="55" text-anchor="middle">VCV Rack patches</text>
+  <text class="small" x="820" y="75" text-anchor="middle">MIDI-CC module per channel</text>
+
+  <rect class="box" x="720" y="260" width="200" height="60" />
+  <text class="label" x="820" y="295" text-anchor="middle">OBS / stream overlays</text>
+  <text class="small" x="820" y="315" text-anchor="middle">follows same CC map</text>
+
+  <!-- arrows -->
+  <path class="arrow" d="M200 180 H240" />
+  <path class="arrow" d="M430 180 H470" />
+  <path class="arrow" d="M670 180 H720" />
+  <path class="arrow" d="M810 120 V80" />
+  <path class="arrow" d="M810 240 V260" />
+
+  <!-- CC and YAML note -->
+  <text class="small" x="335" y="250" text-anchor="middle">CC map: roll14, pitch15, yaw16, alt17, RSSI18, VBAT19, throttle20, arm64</text>
+</svg>

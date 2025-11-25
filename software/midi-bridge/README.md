@@ -5,6 +5,10 @@ Betaflight telemetry into modulation you can actually jam with. Treat this as a
 combo lab notebook and zine—the goal is to help you *understand* the flow so you
 can mangle it into your own rig.
 
+![Telemetry-to-MIDI flow](../../docs/architecture.svg)
+
+Visual cheat sheet: MSP frames leave Betaflight, get smoothed and normalized in `msp_bridge.py` (driven by the YAML in `config/`), then the launchers (`msp_to_midi.py`, `msp_multi_to_midi.py`) push CC14–20 and CC64 out a MIDI port toward Rack patches or OBS overlays.
+
 ## Files at a glance
 
 | File | What it does | Why you should peek |
