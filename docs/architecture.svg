@@ -3,7 +3,7 @@
   <desc id="desc">Betaflight MSP frames travel through the msp_bridge smoothing and normalization, then through CLI launchers to a MIDI port and onward to VCV Rack patches or OBS scenes. CC map references 14-20 and 64 and YAML normalization config.</desc>
   <defs>
     <style>
-      .box { fill: #111827; stroke: #10b981; stroke-width: 3; rx: 10; ry: 10; }
+      .box { fill: #111827; stroke: #ffffff; stroke-width: 3; rx: 10; ry: 10; }
       .arrow { stroke: #10b981; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
       .label { fill: #e5e7eb; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; font-weight: 600; }
       .small { font-size: 12px; font-weight: 500; }
