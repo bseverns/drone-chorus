@@ -1,0 +1,8 @@
+norm:
+  roll: {min:-45.0, max:45.0, curve:"expo", slew:0.04}
+  pitch:{min:-45.0, max:45.0, curve:"expo", slew:0.04}
+  yaw:  {min:-200.0,max:200.0,curve:"linear",slew:0.03}
+  altitude:{min:0.0,max:3.0,curve:"linear",slew:0.05}
+  rssi: {min:0.0, max:100.0,curve:"linear",slew:0.02}
+  vbat: {min:3.2, max:4.2, curve:"linear", slew:0.02}
+  throttle:{min:1000,max:2000,curve:"linear",slew:0.05}

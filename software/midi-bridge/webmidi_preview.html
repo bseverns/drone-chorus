@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Drone Chorus WebMIDI Peek</title>
+  <style>
+    body { font-family: 'Fira Code', monospace; background: #0b1021; color: #e0e0e0; padding: 1rem; }
+    h1 { color: #ff66cc; }
+    #status { margin-bottom: 1rem; }
+    .drone { margin-bottom: 1rem; padding: 0.5rem; border: 1px solid #333; border-radius: 4px; }
+    .bar { height: 10px; background: #222; border-radius: 4px; overflow: hidden; }
+    .fill { height: 100%; background: linear-gradient(90deg, #7dd3fc, #ff66cc); transition: width 0.1s ease; }
+  </style>
+</head>
+<body>
+  <h1>Drone Chorus CC Stream (preview)</h1>
+  <div id="status">Connecting to ws://localhost:8765 …</div>
+  <div id="grid"></div>
+  <script>
+    const grid = document.getElementById('grid');
+    const statusEl = document.getElementById('status');
+    const labels = {14: 'roll', 15: 'pitch', 16: 'yaw', 17: 'altitude', 18: 'rssi', 19: 'vbat', 20: 'throttle', 64: 'gate'};
+
+    let midiOutputs = [];
+    if (navigator.requestMIDIAccess) {
+      navigator.requestMIDIAccess().then(access => {
+        midiOutputs = Array.from(access.outputs.values());
+        statusEl.innerText += ` | WebMIDI outputs: ${midiOutputs.map(o => o.name).join(', ') || 'none'}`;
+      });
+    }
+
+    function render(data) {
+      grid.innerHTML = '';
+      Object.entries(data).forEach(([drone, controls]) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'drone';
+        const title = document.createElement('div');
+        title.innerText = drone;
+        wrapper.appendChild(title);
+        Object.entries(controls).forEach(([cc, value]) => {
+          const row = document.createElement('div');
+          row.style.display = 'flex';
+          row.style.alignItems = 'center';
+          row.style.gap = '0.5rem';
+          const label = document.createElement('div');
+          label.textContent = `${labels[cc] || 'cc'} (${cc})`;
+          label.style.width = '100px';
+          const bar = document.createElement('div');
+          bar.className = 'bar';
+          bar.style.flex = '1';
+          const fill = document.createElement('div');
+          fill.className = 'fill';
+          fill.style.width = `${(value / 127) * 100}%`;
+          bar.appendChild(fill);
+          const val = document.createElement('div');
+          val.textContent = value;
+          val.style.width = '40px';
+          row.appendChild(label);
+          row.appendChild(bar);
+          row.appendChild(val);
+          wrapper.appendChild(row);
+          midiOutputs.forEach(out => out.send([0xB0, Number(cc), Number(value)]));
+        });
+        grid.appendChild(wrapper);
+      });
+    }
+
+    const ws = new WebSocket('ws://localhost:8765');
+    ws.onopen = () => statusEl.innerText = 'WebSocket connected';
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        render(payload);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    ws.onclose = () => statusEl.innerText = 'WebSocket closed';
+  </script>
+</body>
+</html>

@@ -16,15 +16,20 @@ Visual cheat sheet: MSP frames leave Betaflight, get smoothed and normalized in 
 | `msp_bridge.py` | Core plumbing: reads MSP frames, smooths/normalizes values, and blasts MIDI CCs. | The inline comments read like a wiring diagram—start here if you're learning the protocol. |
 | `msp_to_midi.py` | Command-line launcher for a single drone. | Shows how to load the YAML norms, open a MIDI port, and kick the bridge loop. |
 | `msp_multi_to_midi.py` | Threaded launcher for multi-drone ensembles. | Demonstrates sharing one MIDI port while isolating each craft on its own channel. |
+| `gui_app.py` + `gui_backend.py` | PyQt6 control room that wraps the bridge with live CC monitoring, YAML presets, a debug simulator, and a WebMIDI preview server. | Use this when you want everything on one dashboard—serial ports, MIDI outs, heartbeat LED, config watcher, the works. |
+| `webmidi_preview.html` | Tiny HTML visualizer fed by the websocket stream. | Load it in a browser if you want to watch CCs dance without opening a DAW. |
 
 ## Dependencies (keep your rig in tune)
 
-The bridge only leans on three external libraries, all pinned in
-[`requirements.txt`](./requirements.txt) so your bench tests match mine exactly:
+The bridge stays intentionally light, but the GUI adds a couple of creature
+comforts. Everything is pinned in [`requirements.txt`](./requirements.txt) so
+your bench tests match mine exactly:
 
 - **`mido==1.3.3`** — MIDI plumbing without the mystery smoke.
 - **`PyYAML==6.0.3`** — loads the normalization maps you scribble in `config/`.
 - **`pyserial==3.5`** — keeps the MSP serial link from getting cranky.
+- **`PyQt6==6.7.1`** — paints the control room without dragging in a full IDE.
+- **`websockets==12.0`** — powers the optional JSON/WebMIDI preview stream.
 
 Drop into a shell and run `pip install -r software/midi-bridge/requirements.txt`
 before you start hacking; future-you (and your collaborators) will thank you.
@@ -53,6 +58,39 @@ before you start hacking; future-you (and your collaborators) will thank you.
 
 > Bonus punk tip: keep a notepad next to your controller and jot down the
 > wildest sounds each change summons. Science + noise forever.
+
+## Live control room (PyQt6)
+
+When you want everything in one place—serial ports, MIDI outputs, YAML presets,
+heartbeat, and a debug simulator—fire up the GUI:
+
+```bash
+python software/midi-bridge/gui_app.py
+```
+
+What you get:
+
+- **Serial + MIDI dropdowns** that auto-refresh every 2 seconds. Pick your MSP
+  device and your favorite output port, then hit **Start Bridge**.
+- **Config preset switcher** pointed at `presets/`. Grab `demo.yaml` or drop in
+  your own mappings; file changes hot-reload without killing the MIDI stream.
+- **Read-only YAML preview** with an “Unlock editor” toggle when you’re ready to
+  live-patch the config. The save button writes the file and nudges the bridge
+  to pick up the new ranges.
+- **Live monitor** that groups CC messages by drone + control, updating only on
+  change so the CPU can nap. A pulsing LED lets you know when heartbeats/CC
+  bursts fire.
+- **Debug simulator** switch for those days when you don’t have a quad handy.
+  It drives the mapping with smooth sine/cosine telemetry so you can hear the
+  curves without any RF in the air.
+- **WebMIDI preview server** (toggle in the footer) that exposes the CC stream
+  over `ws://localhost:8765` and serves `http://localhost:8080` with
+  `webmidi_preview.html` so you can watch faders wiggle in a browser. If your
+  browser supports WebMIDI it will also forward the values to any virtual port
+  you’ve opened there.
+
+The GUI is capped at ~30–60 Hz update timers so your CPU stays cool while you
+rehearse.
 
 ## Bench playback (no props required)
 
