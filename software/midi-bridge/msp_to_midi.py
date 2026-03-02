@@ -20,6 +20,7 @@ it documents every knob you can twist without touching the Python.
 """
 
 import argparse
+import logging
 import sys
 from typing import Any, Dict, Optional
 
@@ -27,6 +28,9 @@ import mido
 import yaml
 
 from msp_bridge import build_altitude_consumers, run_bridge
+
+logger = logging.getLogger(__name__)
+
 def load_norm(config_path: str, key: Optional[str]) -> Dict[str, Dict[str, float]]:
     """Load a normalization block from ``config_path``.
 
@@ -132,13 +136,16 @@ def main() -> None:
     """Parse CLI arguments, load configs, and launch :func:`run_bridge`."""
 
     args = parse_args()
-    norm_key = None if args.norm_key == "-" else args.norm_key
-    norm = load_norm(args.norm_config, norm_key)
-    overrides = load_overrides(args.norm_overrides)
-    midi_out = open_midi_output(args.midi_port, virtual=not args.no_virtual)
-    inject_altitude, extra_handlers = build_altitude_consumers()
 
     try:
+        norm_key = None if args.norm_key == "-" else args.norm_key
+        norm = load_norm(args.norm_config, norm_key)
+        overrides = load_overrides(args.norm_overrides)
+        midi_out = open_midi_output(args.midi_port, virtual=not args.no_virtual)
+        inject_altitude, extra_handlers = build_altitude_consumers()
+
+        logger.info(f"Starting single drone bridge. MIDI Out: {midi_out.name}")
+
         run_bridge(
             args.serial,
             midi_out,
@@ -152,7 +159,11 @@ def main() -> None:
         )
     except KeyboardInterrupt:
         # Let ctrl+c exit without a stack trace—the performance should stay calm.
+        logger.info("KeyboardInterrupt received, exiting.")
         sys.exit(0)
+    except Exception as exc:
+        logger.exception("Bridge failed with an error.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

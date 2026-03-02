@@ -8,6 +8,7 @@ into "workbench" mode so students can trace how the concurrency pieces fit
 together.
 """
 
+import logging
 import threading
 import time
 from typing import Any, Dict
@@ -16,6 +17,8 @@ import mido
 import yaml
 
 from msp_bridge import build_altitude_consumers, run_bridge
+
+logger = logging.getLogger(__name__)
 
 
 def worker(
@@ -45,34 +48,42 @@ def worker(
 def main() -> None:
     """Load configuration, launch worker threads, and keep them alive."""
 
-    with open("config/multi.yaml", "r", encoding="utf-8") as fh:
-        cfg = yaml.safe_load(fh)
-
     try:
-        midi_out = mido.open_output(cfg["midi"]["port_name"], virtual=True)
-    except Exception:
-        # Fallback keeps rehearsals going even if the named port doesn't exist.
-        midi_out = mido.open_output()
+        with open("config/multi.yaml", "r", encoding="utf-8") as fh:
+            cfg = yaml.safe_load(fh)
 
-    stop_event = threading.Event()
-    threads = []
-    for drone in cfg["drones"]:
-        thread = threading.Thread(
-            target=worker,
-            args=(drone, cfg["norm"], midi_out, stop_event),
-            daemon=True,
-        )
-        thread.start()
-        threads.append(thread)
+        try:
+            midi_out = mido.open_output(cfg["midi"]["port_name"], virtual=True)
+            logger.info(f"Opened MIDI output: {cfg['midi']['port_name']}")
+        except Exception:
+            # Fallback keeps rehearsals going even if the named port doesn't exist.
+            midi_out = mido.open_output()
+            logger.warning("Failed to open specified MIDI port, using default.")
 
-    try:
-        while True:
-            # Sleep instead of busy-waiting; the workers do the realtime stuff.
-            time.sleep(1)
-    except KeyboardInterrupt:
-        stop_event.set()
-        for thread in threads:
-            thread.join(timeout=0.5)
+        stop_event = threading.Event()
+        threads = []
+        for drone in cfg["drones"]:
+            logger.info(f"Starting thread for {drone.get('name', 'drone')} on port {drone['serial']}")
+            thread = threading.Thread(
+                target=worker,
+                args=(drone, cfg["norm"], midi_out, stop_event),
+                daemon=True,
+            )
+            thread.start()
+            threads.append(thread)
+
+        try:
+            while True:
+                # Sleep instead of busy-waiting; the workers do the realtime stuff.
+                time.sleep(1)
+        except KeyboardInterrupt:
+            logger.info("KeyboardInterrupt received, stopping workers.")
+            stop_event.set()
+            for thread in threads:
+                thread.join(timeout=0.5)
+            logger.info("All workers stopped.")
+    except Exception as exc:
+        logger.exception("Multi-drone bridge failed with an error.")
 
 
 if __name__ == "__main__":

@@ -23,12 +23,27 @@ constants, then read `run_bridge` from top to bottom. Every helper is annotated
 with intent and the data it touches.
 """
 
+import logging
+import os
 import struct
 import time
 from typing import Callable, Dict, Optional, Tuple
 
 import mido
 import serial
+
+# Set up logging for the bridge
+log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
+os.makedirs(log_dir, exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.FileHandler(os.path.join(log_dir, "bridge.log")),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # -- MSP command identifiers -------------------------------------------------
 # These numeric IDs are defined by the MSP spec. We pull out only the ones we
@@ -168,6 +183,26 @@ def read_msp_frame(ser) -> Optional[tuple]:
     return cmd, data
 
 
+def validate_norm_config(norm: Dict[str, Dict[str, float]]) -> None:
+    """Validate that the normalization config contains required keys and fields."""
+    required_keys = {"roll", "pitch", "yaw", "altitude", "rssi", "vbat", "throttle"}
+    missing = required_keys - set(norm.keys())
+    if missing:
+        raise ValueError(f"Normalization config is missing required keys: {missing}")
+
+    for key, spec in norm.items():
+        if not isinstance(spec, dict):
+            raise ValueError(f"Normalization spec for '{key}' must be a mapping")
+        if "min" not in spec or "max" not in spec:
+            raise ValueError(f"Normalization spec for '{key}' must contain 'min' and 'max'")
+
+        try:
+            float(spec["min"])
+            float(spec["max"])
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Normalization spec '{key}' min/max must be numeric") from exc
+
+
 def build_mapper(norm: Dict[str, Dict[str, float]], overrides: Optional[Dict] = None) -> Mapper:
     """Create a :class:`Mapper` with configuration overrides applied.
 
@@ -175,6 +210,8 @@ def build_mapper(norm: Dict[str, Dict[str, float]], overrides: Optional[Dict] = 
     to tweak ranges or slews without editing the base YAML. We merge into a new
     dictionary to keep the caller's config immutable.
     """
+
+    validate_norm_config(norm)
 
     merged = {key: dict(spec) for key, spec in norm.items()}
     if overrides:
@@ -310,27 +347,33 @@ def run_bridge(
             telemetry beyond the built-in trio (attitude, RC, analog).
     """
 
-    mapper = build_mapper(norm, norm_overrides)
-    state = dict(_STATE_TEMPLATE)
-    with serial.Serial(serial_port, 115200, timeout=0.01) as ser:  # type: ignore[name-defined]
-        last_emit = 0.0
-        while True:
-            if stop_event is not None and stop_event.is_set():
-                return
-            frame = read_msp_frame(ser)
-            if frame is None:
-                # No complete frame ready—back off briefly to avoid hogging CPU.
-                time.sleep(idle_sleep)
-                continue
-            cmd, data = frame
-            # Fold the new reading into our scratch state buffer.
-            update_state_from_msp(state, cmd, data)
-            if extra_state_handlers and cmd in extra_state_handlers:
-                extra_state_handlers[cmd](state, data)
-            now = time.time()
-            if state_hook is not None:
-                state_hook(state)
-            if now - last_emit > poll_interval:
-                # Time to publish! Each burst covers every tracked CC.
-                emit_state_cc(midi_out, mapper, channel, state)
-                last_emit = now
+    logger.info(f"Starting bridge on serial port '{serial_port}' mapping to MIDI channel {channel + 1}.")
+    try:
+        mapper = build_mapper(norm, norm_overrides)
+        state = dict(_STATE_TEMPLATE)
+        with serial.Serial(serial_port, 115200, timeout=0.01) as ser:  # type: ignore[name-defined]
+            last_emit = 0.0
+            while True:
+                if stop_event is not None and stop_event.is_set():
+                    logger.info("Stop event set. Exiting bridge loop.")
+                    return
+                frame = read_msp_frame(ser)
+                if frame is None:
+                    # No complete frame ready—back off briefly to avoid hogging CPU.
+                    time.sleep(idle_sleep)
+                    continue
+                cmd, data = frame
+                # Fold the new reading into our scratch state buffer.
+                update_state_from_msp(state, cmd, data)
+                if extra_state_handlers and cmd in extra_state_handlers:
+                    extra_state_handlers[cmd](state, data)
+                now = time.time()
+                if state_hook is not None:
+                    state_hook(state)
+                if now - last_emit > poll_interval:
+                    # Time to publish! Each burst covers every tracked CC.
+                    emit_state_cc(midi_out, mapper, channel, state)
+                    last_emit = now
+    except Exception as exc:
+        logger.exception(f"Exception in bridge loop for serial port '{serial_port}': {exc}")
+        raise
