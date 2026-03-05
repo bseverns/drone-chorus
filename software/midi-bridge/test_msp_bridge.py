@@ -19,7 +19,9 @@ from msp_bridge import (  # noqa: E402
     _CC_MAPPING,
     _STATE_TEMPLATE,
     build_altitude_consumers,
+    build_signal_schema,
     emit_state_cc,
+    merge_state_handlers,
     read_msp_frame,
     update_state_from_msp,
 )
@@ -288,3 +290,56 @@ def test_altitude_helpers_switch_between_baro_and_throttle():
     clock.jump(7.5)
     inject_altitude(state)
     assert state["altitude"] == 0.0
+
+
+def test_build_signal_schema_adds_custom_signal_and_handler():
+    signals = {
+        "climb_rate": {
+            "cc": 21,
+            "default": 0.0,
+            "msp": {"cmd": MSP_ALTITUDE, "format": "<i", "scale": 0.01},
+        }
+    }
+
+    state_template, cc_mapping, handlers = build_signal_schema(signals)
+
+    assert state_template["climb_rate"] == 0.0
+    assert cc_mapping["climb_rate"] == 21
+    assert MSP_ALTITUDE in handlers
+
+    state = dict(state_template)
+    handlers[MSP_ALTITUDE](state, struct.pack("<i", 350))
+    assert state["climb_rate"] == pytest.approx(3.5)
+
+
+def test_build_signal_schema_requires_cc_for_new_signals():
+    with pytest.raises(ValueError, match="must define 'cc'"):
+        build_signal_schema({"new_signal": {"default": 0.0}})
+
+
+def test_merge_state_handlers_chains_shared_commands():
+    def base_handler(state, payload):
+        state["first"] = payload[0]
+
+    def extra_handler(state, payload):
+        state["second"] = payload[0] + 1
+
+    merged = merge_state_handlers({1: base_handler}, {1: extra_handler})
+    state = {}
+    merged[1](state, b"\x05")
+    assert state == {"first": 5, "second": 6}
+
+
+def test_emit_state_cc_supports_custom_cc_mapping(monkeypatch):
+    mapper = Mapper({"roll": {"min": 0.0, "max": 1.0}})
+    state = {"roll": 0.5, "throttle": 900.0}
+    mapper.norm01 = lambda key, value: value  # type: ignore[assignment]
+    monkeypatch.setattr(msp_bridge.mido, "Message", FakeMidiMessage)
+    midi_out = FakeMidiOut()
+
+    emit_state_cc(midi_out, mapper, 1, state, cc_mapping={"roll": 70})
+
+    assert midi_out.sent[0].control == 70
+    assert midi_out.sent[0].value == int(0.5 * 127)
+    assert midi_out.sent[-1].control == 64
+    assert midi_out.sent[-1].value == 0

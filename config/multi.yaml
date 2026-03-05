@@ -1,19 +1,53 @@
 midi:
   port_name: "DroneChorus"
+
+runtime:
+  # Increase these values for lower CPU usage when scaling up drone count.
+  poll_interval: 0.02
+  idle_sleep: 0.001
+
+safety:
+  # Optional global ceiling applied before CC mapping (1000-2000).
+  throttle_limit:
+  # Optional file latch for an external E-stop. If this file exists, gate closes.
+  estop_file:
+  # CC64 gate threshold.
+  gate_threshold: 1050
+
 drones:
   - name: "DroneA"
     serial: "/dev/ttyUSB0"
     channel: 1
     norm_overrides: {}
+    # Optional per-drone runtime + safety overrides:
+    # poll_interval: 0.03
+    # idle_sleep: 0.002
+    # publish_interval: 0.02
+    # throttle_limit: 1500
+    # estop_file: "/tmp/drone_a.estop"
   - name: "DroneB"
     serial: "/dev/ttyUSB1"
     channel: 2
     norm_overrides: {}
+
+# Optional signal schema for CC remaps or custom MSP extractions.
+# New signals need matching entries in `norm` below.
+# signals:
+#   climb_rate:
+#     cc: 21
+#     default: 0.0
+#     msp:
+#       cmd: 109
+#       format: "<i"
+#       scale: 0.01
+#       offset: 0.0
+#       clamp: [-2.0, 6.0]
+
 norm:
-  roll: {min:-45.0, max:45.0, curve:"expo", slew:0.05}
-  pitch:{min:-45.0, max:45.0, curve:"expo", slew:0.05}
-  yaw:  {min:-200.0,max:200.0,curve:"linear",slew:0.03}
-  altitude:{min:0.0,max:3.0,curve:"linear",slew:0.04}
-  rssi: {min:0.0, max:100.0,curve:"linear",slew:0.02}
-  vbat: {min:3.2, max:4.2, curve:"linear", slew:0.02}
-  throttle:{min:1000,max:2000,curve:"linear",slew:0.03}
+  roll: {min: -45.0, max: 45.0, curve: "expo", slew: 0.05}
+  pitch: {min: -45.0, max: 45.0, curve: "expo", slew: 0.05}
+  yaw: {min: -200.0, max: 200.0, curve: "linear", slew: 0.03}
+  altitude: {min: 0.0, max: 3.0, curve: "linear", slew: 0.04}
+  rssi: {min: 0.0, max: 100.0, curve: "linear", slew: 0.02}
+  vbat: {min: 3.2, max: 4.2, curve: "linear", slew: 0.02}
+  throttle: {min: 1000, max: 2000, curve: "linear", slew: 0.03}

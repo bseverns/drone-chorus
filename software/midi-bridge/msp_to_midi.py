@@ -2,7 +2,7 @@
 """CLI wrapper for bridging a single MSP serial stream into MIDI CCs.
 
 Welcome to the "one drone, one synth voice" entry point. This script is meant
-to be read almost like lab notes—every helper explains why it exists so that
+to be read almost like lab notes-every helper explains why it exists so that
 you can remix it without guessing.
 
 Flow overview:
@@ -21,37 +21,42 @@ it documents every knob you can twist without touching the Python.
 
 import argparse
 import sys
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import mido
 import yaml
 
-from msp_bridge import build_altitude_consumers, run_bridge
-def load_norm(config_path: str, key: Optional[str]) -> Dict[str, Dict[str, float]]:
-    """Load a normalization block from ``config_path``.
+from msp_bridge import (
+    build_altitude_consumers,
+    build_signal_schema,
+    merge_state_handlers,
+    run_bridge,
+)
 
-    Args:
-        config_path: Path to a YAML file containing either the norm dict itself
-            or a parent mapping with named norm blocks.
-        key: Optional key to select inside the YAML document. ``None`` means the
-            top-level document is already the norm mapping.
 
-    Raises:
-        ValueError: If the document structure doesn't match what we expect.
-    """
+def load_yaml(config_path: str) -> Dict[str, Any]:
+    """Load a YAML config document and coerce empty docs to ``{}``."""
 
     with open(config_path, "r", encoding="utf-8") as fh:
-        data = yaml.safe_load(fh)
+        data = yaml.safe_load(fh) or {}
+    if not isinstance(data, dict):
+        raise ValueError(f"Expected mapping in {config_path}")
+    return data
+
+
+def load_norm(config_data: Dict[str, Any], key: Optional[str]) -> Dict[str, Dict[str, float]]:
+    """Load a normalization block from the parsed YAML document."""
+
     if key is None:
-        if not isinstance(data, dict):
-            raise ValueError(f"Expected mapping in {config_path} for normalization spec")
-        return data
-    try:
-        norm = data[key]
-    except KeyError as exc:
-        raise ValueError(f"Key '{key}' not found in {config_path}") from exc
+        norm = config_data
+    else:
+        try:
+            norm = config_data[key]
+        except KeyError as exc:
+            raise ValueError(f"Key '{key}' not found in config") from exc
     if not isinstance(norm, dict):
-        raise ValueError(f"Expected mapping at key '{key}' in {config_path}")
+        raise ValueError("Normalization spec must be a mapping")
     return norm
 
 
@@ -81,6 +86,19 @@ def open_midi_output(name: Optional[str], virtual: bool) -> Any:
         except Exception:
             return mido.open_output()
     return mido.open_output()
+
+
+def build_estop_checker(path: Optional[str]):
+    """Return a callback that reports whether the E-stop latch is active."""
+
+    if not path:
+        return None
+    estop_path = Path(path)
+
+    def estop_is_active() -> bool:
+        return estop_path.exists()
+
+    return estop_is_active
 
 
 def parse_args() -> argparse.Namespace:
@@ -125,6 +143,21 @@ def parse_args() -> argparse.Namespace:
         default=0.001,
         help="Seconds to nap while waiting for MSP frames (default: 0.001).",
     )
+    parser.add_argument(
+        "--throttle-limit",
+        type=float,
+        help="Optional max throttle value (1000-2000) enforced before CC mapping.",
+    )
+    parser.add_argument(
+        "--gate-threshold",
+        type=float,
+        default=1050.0,
+        help="Throttle threshold for gate CC64 (default: 1050).",
+    )
+    parser.add_argument(
+        "--estop-file",
+        help="When this file exists, the bridge forces throttle idle and gate off.",
+    )
     return parser.parse_args()
 
 
@@ -132,11 +165,17 @@ def main() -> None:
     """Parse CLI arguments, load configs, and launch :func:`run_bridge`."""
 
     args = parse_args()
+    config_data = load_yaml(args.norm_config)
     norm_key = None if args.norm_key == "-" else args.norm_key
-    norm = load_norm(args.norm_config, norm_key)
+    norm = load_norm(config_data, norm_key)
     overrides = load_overrides(args.norm_overrides)
     midi_out = open_midi_output(args.midi_port, virtual=not args.no_virtual)
-    inject_altitude, extra_handlers = build_altitude_consumers()
+
+    inject_altitude, altitude_handlers = build_altitude_consumers()
+    signals_cfg = config_data.get("signals") if norm_key is not None else None
+    state_template, cc_mapping, schema_handlers = build_signal_schema(signals_cfg)
+    extra_handlers = merge_state_handlers(altitude_handlers, schema_handlers)
+    estop_hook = build_estop_checker(args.estop_file)
 
     try:
         run_bridge(
@@ -149,9 +188,14 @@ def main() -> None:
             idle_sleep=args.idle_sleep,
             extra_state_handlers=extra_handlers,
             state_hook=inject_altitude,
+            state_template=state_template,
+            cc_mapping=cc_mapping,
+            throttle_limit=args.throttle_limit,
+            estop_hook=estop_hook,
+            gate_threshold=args.gate_threshold,
         )
     except KeyboardInterrupt:
-        # Let ctrl+c exit without a stack trace—the performance should stay calm.
+        # Let ctrl+c exit without a stack trace-the performance should stay calm.
         sys.exit(0)
 
 

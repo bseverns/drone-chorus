@@ -23,6 +23,8 @@ The diagram above keeps the signal chain honest: Betaflight MSP frames roll thro
    See: `docs/ASSUMPTION_LEDGER.md`
 5. **UX Map** — what the audience sees/hears and how controls surface near the patch edge.  
    See: `docs/UX_MAP.md`
+6. **GUI Control Room Guide** — operating and customizing the PyQt6 dashboard.  
+   See: `docs/GUI_CONTROL_ROOM.md`
 
 Treat that order as gospel for newcomers: prototype → secure → rehearse → reflect → repeat.
 
@@ -78,6 +80,8 @@ If you’re missing actual aircraft, lean on the [telemetry captures](obs/teleme
 3. **Virtual MIDI loopback** — macOS IAC, Windows loopMIDI, or Linux ALSA `snd-virmidi`. The scripts auto-create a virtual port on macOS/Linux; Windows users should add one manually.
 4. **OBS 29+** — import the bundled scene collection for ready-to-roll streaming and recording.
 5. **Optional analysis tools** — `socat` and PySerial’s `miniterm` for log replay, `midimon` or `MIDI Monitor` to visualize CC output.
+6. **Optional beginner packaging path** — `./scripts/build_gui_binary.sh` builds a desktop app bundle via PyInstaller.
+7. **Optional container path** — `software/midi-bridge/Dockerfile` for reproducible headless bridge runs.
 
 Keep a `python -m venv .venv` around if you demo this for others; nothing tanks a workshop like conflicting site packages.
 
@@ -96,6 +100,7 @@ python3 software/midi-bridge/msp_to_midi.py --serial /dev/ttyUSB0
    - Swap `/dev/ttyUSB0` for your actual rig — skim [Find your MSP port](docs/CONTROL_STACK_PLAYBOOK.md#find-your-msp-port) if you need a refresher on sniffing the right device.
    - Default MIDI port: a virtual **DroneChorus** device. Override with `--midi-port MyHardware --no-virtual` if you want to hit a physical DIN box.
    - Reuse the shared scaling map from `config/multi.yaml`; drop a YAML of tweaks via `--norm-overrides path/to/my_overrides.yaml`.
+   - Optional safety hooks: `--throttle-limit 1500 --estop-file /tmp/drone_chorus.estop`.
 4) **VCV Rack**: load `vcv/DroneChorus_Patch.vcv`, set the **Core MIDI‑CC** device to **DroneChorus**, Channel 1.
 5) **Fine tune**: ride attenuverters; if you need deeper changes, clone `config/multi.yaml` and point `--norm-config` at your remix.
 
@@ -107,6 +112,14 @@ This is what you launch when you’re spinning up the full chorus—multiple cra
 ```
 - Edit `config/multi.yaml` (serial path per drone, 1‑based channel, optional `norm_overrides`).
 - The launcher spawns one thread per entry, all sharing the same smoothing map.
+- For higher drone counts, try the process-based prototype:
+```bash
+./scripts/launch_multi_mp.sh --config config/multi.yaml
+```
+- `runtime` lets you tune `poll_interval`/`idle_sleep` when scaling drone count.
+- `publish_interval` (per drone) controls worker snapshot cadence in multiprocessing mode.
+- `safety` adds bridge-level guardrails (`throttle_limit`, `estop_file`, `gate_threshold`).
+- `signals` lets you remap CCs or add declarative MSP-derived telemetry fields.
 - In Rack: instantiate one **MIDI‑CC** per drone and set channels 1..N.
 - Load `vcv/DroneChorus_2Drones.vcv` as a template and keep scaling consistent.
 

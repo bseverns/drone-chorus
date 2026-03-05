@@ -131,4 +131,27 @@ pip install -r software/midi-bridge/requirements.txt
 - [ ] `pip --version` (or `pip3 --version`) reports the same Python path.
 - [ ] `pip install -r software/midi-bridge/requirements.txt` finishes without errors.
 
+---
+
+## Optional: build a desktop app (less terminal use later)
+
+If you want a clickable app bundle for the control room GUI:
+
+```bash
+./scripts/build_gui_binary.sh
+```
+
+That command builds `dist/DroneChorusControlRoom` via PyInstaller.
+
+---
+
+## Optional: run in a container (advanced helper)
+
+If your Python setup is unstable or workshop machines differ, use Docker:
+
+```bash
+docker build -f software/midi-bridge/Dockerfile -t drone-chorus-bridge .
+docker run --rm -it --device /dev/ttyUSB0 drone-chorus-bridge --serial /dev/ttyUSB0
+```
+
 You now have the MSP→MIDI bridge dependencies staged. Flip back to the README quickstart and let the drones sing.

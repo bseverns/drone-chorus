@@ -33,7 +33,12 @@ This is the soup‑to‑nuts wiring for **flight → MIDI → Rack**.
 
 ## Multi‑drone (per‑channel)
 - Config: `config/multi.yaml` — list each drone: `serial`, `channel`, optional `norm_overrides`
+- Runtime scaling knobs: `runtime.poll_interval` + `runtime.idle_sleep` to trade latency for CPU headroom.
+- Multiprocessing knob: per-drone `publish_interval` for worker snapshot cadence.
+- Safety knobs: `safety.throttle_limit`, `safety.estop_file`, `safety.gate_threshold`.
+- Extensibility knobs: `signals` schema lets you add/remap CC signals from YAML.
 - Bridge: `software/midi-bridge/msp_multi_to_midi.py` (spawn via `./scripts/launch_multi.sh` when you want all drones live)
+- Process prototype bridge: `software/midi-bridge/msp_multi_mp.py` (spawn via `./scripts/launch_multi_mp.sh` for process-per-drone decode)
 - In Rack, duplicate voice per channel; keep attenuverters modest.
 
 ## Tuning heuristics

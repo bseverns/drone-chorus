@@ -1,3 +1,6 @@
 .DS_Store
 data/*.mspbin
 obs/.DS_Store
+build/
+dist/
+*.spec

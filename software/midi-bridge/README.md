@@ -16,8 +16,10 @@ Visual cheat sheet: MSP frames leave Betaflight, get smoothed and normalized in 
 | `msp_bridge.py` | Core plumbing: reads MSP frames, smooths/normalizes values, and blasts MIDI CCs. | The inline comments read like a wiring diagram—start here if you're learning the protocol. |
 | `msp_to_midi.py` | Command-line launcher for a single drone. | Shows how to load the YAML norms, open a MIDI port, and kick the bridge loop. |
 | `msp_multi_to_midi.py` | Threaded launcher for multi-drone ensembles. | Demonstrates sharing one MIDI port while isolating each craft on its own channel. |
+| `msp_multi_mp.py` | Multiprocessing prototype launcher for multi-drone rigs. | Use this to test process-per-drone decode under heavier load. |
 | `gui_app.py` + `gui_backend.py` | PyQt6 control room that wraps the bridge with live CC monitoring, YAML presets, a debug simulator, and a WebMIDI preview server. | Use this when you want everything on one dashboard—serial ports, MIDI outs, heartbeat LED, config watcher, the works. |
 | `webmidi_preview.html` | Tiny HTML visualizer fed by the websocket stream. | Load it in a browser if you want to watch CCs dance without opening a DAW. |
+| `Dockerfile` | Container image for headless bridge runs. | Useful for repeatable workshop/demo environments. |
 
 ## Dependencies (keep your rig in tune)
 
@@ -50,9 +52,9 @@ before you start hacking; future-you (and your collaborators) will thank you.
 
 - **Run a dry rehearsal** by pointing `--serial` at a log playback tool like
   `socat` piping from a file. The bridge doesn't care where the bytes originate.
-- **Add a new telemetry field** by editing `_STATE_TEMPLATE`, `_CC_MAPPING`, and
-  `update_state_from_msp`. The new CC will appear automatically once you map it
-  in Rack.
+- **Add a new telemetry field** using the `signals` schema in `config/multi.yaml`
+  (CC number, default, optional declarative MSP extraction) plus a matching
+  `norm` entry. No Python edits required for common cases.
 - **Teach the class**: have students clone this repo, annotate their own copies
   of the YAML, and compare how different scaling curves feel on the same patch.
 
@@ -91,6 +93,63 @@ What you get:
 
 The GUI is capped at ~30–60 Hz update timers so your CPU stays cool while you
 rehearse.
+
+For a full operator walkthrough, see [`docs/GUI_CONTROL_ROOM.md`](../../docs/GUI_CONTROL_ROOM.md).
+
+## Scaling and safety knobs
+
+`config/multi.yaml` now supports:
+
+- `runtime.poll_interval` / `runtime.idle_sleep` for CPU tuning under load.
+- `safety.throttle_limit` for a bridge-level throttle ceiling.
+- `safety.estop_file` as a latch hook for external hardware/software E-stop.
+- `signals` schema for CC remaps and optional custom MSP payload extraction.
+- Per-drone `publish_interval` for state snapshot cadence in multiprocessing mode.
+
+Single-drone CLI mirrors these with flags:
+
+```bash
+python software/midi-bridge/msp_to_midi.py \
+  --serial /dev/ttyUSB0 \
+  --throttle-limit 1500 \
+  --estop-file /tmp/drone_chorus.estop
+```
+
+Create the E-stop file to force idle/gate-off; delete it to resume normal output.
+
+## Multiprocessing prototype (process-per-drone decode)
+
+To compare against the threaded launcher:
+
+```bash
+./scripts/launch_multi_mp.sh --config config/multi.yaml
+```
+
+Prototype behavior:
+
+- One worker process per drone handles MSP decode + altitude fallback.
+- Parent process owns MIDI output and mapper state for all drones.
+- Workers publish state snapshots through a bounded queue (`--queue-size`).
+- If queue pressure spikes, oldest snapshots are dropped to preserve recency.
+
+Use this mode when threaded runs become CPU-bound or jitter under telemetry load.
+
+## Beginner-friendly packaging options
+
+Build a desktop app bundle (macOS/Linux) via PyInstaller:
+
+```bash
+./scripts/build_gui_binary.sh
+```
+
+The artifact lands in `dist/DroneChorusControlRoom`.
+
+For containerized CLI runs:
+
+```bash
+docker build -f software/midi-bridge/Dockerfile -t drone-chorus-bridge .
+docker run --rm -it --device /dev/ttyUSB0 drone-chorus-bridge --serial /dev/ttyUSB0
+```
 
 ## Bench playback (no props required)
 

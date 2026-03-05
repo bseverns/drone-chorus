@@ -23,9 +23,11 @@ constants, then read `run_bridge` from top to bottom. Every helper is annotated
 with intent and the data it touches.
 """
 
+from __future__ import annotations
+
 import struct
 import time
-from typing import Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import mido
 import serial
@@ -48,7 +50,7 @@ _STATE_TEMPLATE = {
     "altitude": 0.0,
     "rssi": 100.0,
     "vbat": 4.0,
-    "throttle": 1000,
+    "throttle": 1000.0,
 }
 
 # Each telemetry field gets pegged to a MIDI CC number. The specific values are
@@ -168,6 +170,18 @@ def read_msp_frame(ser) -> Optional[tuple]:
     return cmd, data
 
 
+def merge_norm_specs(
+    norm: Dict[str, Dict[str, float]], overrides: Optional[Dict[str, Dict[str, float]]] = None
+) -> Dict[str, Dict[str, float]]:
+    """Merge base normalization specs with optional overrides."""
+
+    merged = {key: dict(spec) for key, spec in norm.items()}
+    if overrides:
+        for key, values in overrides.items():
+            merged.setdefault(key, {}).update(values)
+    return merged
+
+
 def build_mapper(norm: Dict[str, Dict[str, float]], overrides: Optional[Dict] = None) -> Mapper:
     """Create a :class:`Mapper` with configuration overrides applied.
 
@@ -176,11 +190,107 @@ def build_mapper(norm: Dict[str, Dict[str, float]], overrides: Optional[Dict] = 
     dictionary to keep the caller's config immutable.
     """
 
-    merged = {key: dict(spec) for key, spec in norm.items()}
-    if overrides:
-        for key, values in overrides.items():
-            merged.setdefault(key, {}).update(values)
-    return Mapper(merged)
+    return Mapper(merge_norm_specs(norm, overrides))
+
+
+SignalHandler = Callable[[Dict[str, float], bytes], None]
+
+
+def _build_custom_msp_handler(signal_key: str, spec: Dict[str, Any]) -> Tuple[int, SignalHandler]:
+    """Compile a declarative MSP extraction rule into a callable.
+
+    Expected schema:
+    ``{"cmd": 123, "format": "<hh", "index": 0, "byte_offset": 0,
+    "scale": 1.0, "offset": 0.0, "clamp": [lo, hi]}``.
+    """
+
+    if "cmd" not in spec or "format" not in spec:
+        raise ValueError(f"signals.{signal_key}.msp requires 'cmd' and 'format'")
+
+    cmd = int(spec["cmd"])
+    fmt = str(spec["format"])
+    index = int(spec.get("index", 0))
+    byte_offset = int(spec.get("byte_offset", 0))
+    scale = float(spec.get("scale", 1.0))
+    offset = float(spec.get("offset", 0.0))
+    clamp_spec = spec.get("clamp")
+    clamp_range: Optional[Tuple[float, float]] = None
+    if clamp_spec is not None:
+        if not isinstance(clamp_spec, (list, tuple)) or len(clamp_spec) != 2:
+            raise ValueError(f"signals.{signal_key}.msp.clamp must be [min, max]")
+        clamp_range = (float(clamp_spec[0]), float(clamp_spec[1]))
+
+    size = struct.calcsize(fmt)
+
+    def handler(state: Dict[str, float], payload: bytes) -> None:
+        if len(payload) < byte_offset + size:
+            return
+        values = struct.unpack(fmt, payload[byte_offset : byte_offset + size])
+        if not values or index < 0 or index >= len(values):
+            return
+        value = float(values[index]) * scale + offset
+        if clamp_range is not None:
+            value = clamp(value, clamp_range[0], clamp_range[1])
+        state[signal_key] = value
+
+    return cmd, handler
+
+
+def _chain_handlers(first: SignalHandler, second: SignalHandler) -> SignalHandler:
+    def chained(state: Dict[str, float], payload: bytes) -> None:
+        first(state, payload)
+        second(state, payload)
+
+    return chained
+
+
+def build_signal_schema(
+    signals: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> Tuple[Dict[str, float], Dict[str, int], Dict[int, SignalHandler]]:
+    """Build state defaults, CC map, and extra MSP handlers from config.
+
+    The optional ``signals`` mapping lets users add or remap fields without
+    editing this module. Any signal may define:
+
+    - ``cc``: MIDI controller number
+    - ``default``: startup state value
+    - ``msp``: declarative extraction rule for arbitrary MSP payloads
+    """
+
+    state_template = dict(_STATE_TEMPLATE)
+    cc_mapping = dict(_CC_MAPPING)
+    handlers: Dict[int, SignalHandler] = {}
+
+    if not signals:
+        return state_template, cc_mapping, handlers
+
+    if not isinstance(signals, dict):
+        raise ValueError("signals config must be a mapping")
+
+    for key, spec in signals.items():
+        if not isinstance(spec, dict):
+            raise ValueError(f"signals.{key} must be a mapping")
+        if "default" in spec:
+            state_template[key] = float(spec["default"])
+        elif key not in state_template:
+            state_template[key] = 0.0
+
+        if "cc" in spec:
+            cc_mapping[key] = int(spec["cc"])
+        elif key not in cc_mapping:
+            raise ValueError(f"signals.{key} must define 'cc' for new fields")
+
+        custom_msp = spec.get("msp")
+        if custom_msp is not None:
+            if not isinstance(custom_msp, dict):
+                raise ValueError(f"signals.{key}.msp must be a mapping")
+            cmd, handler = _build_custom_msp_handler(key, custom_msp)
+            if cmd in handlers:
+                handlers[cmd] = _chain_handlers(handlers[cmd], handler)
+            else:
+                handlers[cmd] = handler
+
+    return state_template, cc_mapping, handlers
 
 
 def build_altitude_helpers(
@@ -211,7 +321,7 @@ def build_altitude_helpers(
         nonlocal last_altitude_update, last_altitude_m
         now = time_source()
         if now - last_altitude_update > 1.0:
-            normalized = (state["throttle"] - 1000.0) / 1000.0
+            normalized = (state.get("throttle", 1000.0) - 1000.0) / 1000.0
             normalized = clamp(normalized, 0.0, 1.0)
             state["altitude"] = normalized * 3.0
         else:
@@ -244,22 +354,30 @@ def update_state_from_msp(state: Dict[str, float], cmd: int, data: bytes) -> Non
     """
 
     if cmd == MSP_ATTITUDE and len(data) >= 6:
-        roll, pitch, yaw = struct.unpack("<hhh", data[:6])
+        roll, pitch, _yaw = struct.unpack("<hhh", data[:6])
         state["roll"] = roll / 10.0
         state["pitch"] = pitch / 10.0
     elif cmd == MSP_RC and len(data) >= 16:
         channels = struct.unpack("<8H", data[:16])
-        state["throttle"] = channels[2]
+        state["throttle"] = float(channels[2])
         state["yaw"] = (channels[3] - 1500) / 500.0 * 200.0
     elif cmd == MSP_ALTITUDE and len(data) >= 4:
         altitude_cm = struct.unpack("<i", data[:4])[0]
         state["altitude"] = altitude_cm / 100.0
     elif cmd == MSP_ANALOG and len(data) >= 7:
         state["vbat"] = data[0] / 10.0
-        state["rssi"] = data[3] if len(data) >= 5 else 100
+        state["rssi"] = float(data[3] if len(data) >= 5 else 100)
 
 
-def emit_state_cc(midi_out, mapper: Mapper, channel: int, state: Dict[str, float]) -> None:
+def emit_state_cc(
+    midi_out,
+    mapper: Mapper,
+    channel: int,
+    state: Dict[str, float],
+    *,
+    cc_mapping: Optional[Dict[str, int]] = None,
+    gate_threshold: float = 1050.0,
+) -> None:
     """Send the current ``state`` over MIDI CC messages.
 
     Each telemetry field is mapped through the ``Mapper`` and scaled to the
@@ -268,15 +386,33 @@ def emit_state_cc(midi_out, mapper: Mapper, channel: int, state: Dict[str, float
     envelopes or switch scenes).
     """
 
-    for key, control in _CC_MAPPING.items():
+    active_cc = cc_mapping or _CC_MAPPING
+    for key, control in active_cc.items():
+        if key not in state:
+            continue
         value = int(mapper.norm01(key, state[key]) * 127)
         midi_out.send(
             mido.Message("control_change", channel=channel, control=control, value=value)
         )
-    gate = 127 if state["throttle"] > 1050 else 0
+    gate = 127 if state.get("throttle", 0.0) > gate_threshold else 0
     midi_out.send(
         mido.Message("control_change", channel=channel, control=64, value=gate)
     )
+
+
+def merge_state_handlers(
+    base: Optional[Dict[int, SignalHandler]], extra: Optional[Dict[int, SignalHandler]]
+) -> Dict[int, SignalHandler]:
+    """Merge MSP command handlers, chaining handlers that share a command."""
+
+    merged: Dict[int, SignalHandler] = {}
+    for source in (base or {}, extra or {}):
+        for cmd, handler in source.items():
+            if cmd in merged:
+                merged[cmd] = _chain_handlers(merged[cmd], handler)
+            else:
+                merged[cmd] = handler
+    return merged
 
 
 def run_bridge(
@@ -285,14 +421,17 @@ def run_bridge(
     norm: Dict[str, Dict[str, float]],
     *,
     channel: int = 0,
-    norm_overrides: Optional[Dict] = None,
+    norm_overrides: Optional[Dict[str, Dict[str, float]]] = None,
     stop_event=None,
     poll_interval: float = 0.02,
     idle_sleep: float = 0.001,
     state_hook: Optional[Callable[[Dict[str, float]], None]] = None,
-    extra_state_handlers: Optional[
-        Dict[int, Callable[[Dict[str, float], bytes], None]]
-    ] = None,
+    extra_state_handlers: Optional[Dict[int, SignalHandler]] = None,
+    state_template: Optional[Dict[str, float]] = None,
+    cc_mapping: Optional[Dict[str, int]] = None,
+    throttle_limit: Optional[float] = None,
+    estop_hook: Optional[Callable[[], bool]] = None,
+    gate_threshold: float = 1050.0,
 ) -> None:
     """Main pump: read MSP frames and burst out MIDI CC messages.
 
@@ -308,29 +447,69 @@ def run_bridge(
         state_hook: Optional callback to mutate ``state`` before emitting CCs.
         extra_state_handlers: Optional MSP command → handler map for decoding
             telemetry beyond the built-in trio (attitude, RC, analog).
+        state_template: Optional initial state values keyed by signal name.
+        cc_mapping: Optional MIDI CC map keyed by signal name.
+        throttle_limit: Optional max throttle (1000-2000) applied before mapping.
+        estop_hook: Optional callback that returns ``True`` when E-stop is active.
+        gate_threshold: Throttle threshold used for CC64 gate emission.
     """
 
-    mapper = build_mapper(norm, norm_overrides)
-    state = dict(_STATE_TEMPLATE)
+    merged_norm = merge_norm_specs(norm, norm_overrides)
+    mapper = Mapper(merged_norm)
+    active_state_template = dict(state_template or _STATE_TEMPLATE)
+    active_cc_mapping = dict(cc_mapping or _CC_MAPPING)
+
+    missing_norm = [key for key in active_cc_mapping if key not in merged_norm]
+    if missing_norm:
+        raise ValueError(
+            f"Normalization config missing keys for CC mapping: {', '.join(sorted(missing_norm))}"
+        )
+
+    if throttle_limit is not None:
+        throttle_limit = clamp(float(throttle_limit), 1000.0, 2000.0)
+
+    state = dict(active_state_template)
+    handlers = extra_state_handlers or {}
+
     with serial.Serial(serial_port, 115200, timeout=0.01) as ser:  # type: ignore[name-defined]
         last_emit = 0.0
         while True:
             if stop_event is not None and stop_event.is_set():
                 return
             frame = read_msp_frame(ser)
+            now = time.time()
+            estop_active = bool(estop_hook is not None and estop_hook())
+
+            if frame is not None:
+                cmd, data = frame
+                # Fold the new reading into our scratch state buffer.
+                update_state_from_msp(state, cmd, data)
+                if cmd in handlers:
+                    handlers[cmd](state, data)
+
+                if throttle_limit is not None and "throttle" in state:
+                    state["throttle"] = min(float(state["throttle"]), throttle_limit)
+
+                if state_hook is not None:
+                    state_hook(state)
+
+            if estop_active:
+                for key, default in active_state_template.items():
+                    state[key] = default
+                state["throttle"] = 1000.0
+
+            if now - last_emit > poll_interval and (frame is not None or estop_active):
+                # Time to publish! Each burst covers every tracked CC.
+                emit_state_cc(
+                    midi_out,
+                    mapper,
+                    channel,
+                    state,
+                    cc_mapping=active_cc_mapping,
+                    gate_threshold=gate_threshold,
+                )
+                last_emit = now
+
             if frame is None:
                 # No complete frame ready—back off briefly to avoid hogging CPU.
                 time.sleep(idle_sleep)
-                continue
-            cmd, data = frame
-            # Fold the new reading into our scratch state buffer.
-            update_state_from_msp(state, cmd, data)
-            if extra_state_handlers and cmd in extra_state_handlers:
-                extra_state_handlers[cmd](state, data)
-            now = time.time()
-            if state_hook is not None:
-                state_hook(state)
-            if now - last_emit > poll_interval:
-                # Time to publish! Each burst covers every tracked CC.
-                emit_state_cc(midi_out, mapper, channel, state)
-                last_emit = now
