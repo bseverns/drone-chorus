@@ -188,6 +188,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.status_label = QtWidgets.QLabel("Idle")
         layout.addWidget(self.status_label)
+        self.scope_label = QtWidgets.QLabel("")
+        self.scope_label.setWordWrap(True)
+        layout.addWidget(self.scope_label)
         return box
 
     def _build_footer(self) -> QtWidgets.QGroupBox:
@@ -242,7 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 norm=norm,
                 simulated=self.sim_toggle.isChecked(),
             )
-            self.status_label.setText("Bridge running")
+            self.status_label.setText(f"Bridge running on {self.backend.status.midi_port}")
         except Exception as exc:  # pragma: no cover - UI path
             self.status_label.setText(f"Error: {exc}")
 
@@ -275,7 +278,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def refresh_midi_ports(self) -> None:
         current = self.midi_combo.currentText()
-        outputs = mido.get_output_names()
+        outputs = sorted(set(mido.get_output_names()) | {"DroneChorus"})
         self.midi_combo.blockSignals(True)
         self.midi_combo.clear()
         self.midi_combo.addItems(outputs)
@@ -291,6 +294,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def on_status(self, status: BridgeStatus) -> None:
         if status.heartbeat_ts:
             self.heartbeat.update_heartbeat(status.heartbeat_ts)
+        if status.last_error:
+            self.status_label.setText(f"Error: {status.last_error}")
+        if status.config_notice:
+            self.scope_label.setText(f"Scope note: {status.config_notice}")
+        else:
+            self.scope_label.setText("")
         self.refresh_monitor(status.cc_values)
 
     def refresh_monitor(self, cc_values: dict) -> None:

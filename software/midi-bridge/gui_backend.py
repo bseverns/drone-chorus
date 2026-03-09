@@ -21,6 +21,7 @@ from typing import Callable, Dict, Optional
 import mido
 import yaml
 
+from midi_ports import open_midi_output as open_shared_midi_output
 from msp_bridge import (
     build_altitude_consumers,
     build_mapper,
@@ -46,6 +47,7 @@ class BridgeStatus:
     midi_port: Optional[str] = None
     last_config: Optional[Path] = None
     last_error: Optional[str] = None
+    config_notice: Optional[str] = None
     heartbeat_ts: float = 0.0
     cc_values: Dict[str, Dict[str, int]] = field(default_factory=dict)
 
@@ -71,9 +73,17 @@ class MonitoringMidiOut:
 class WebMidiStreamer:
     """Minimal websocket broadcaster for CC snapshots."""
 
-    def __init__(self, host: str = "localhost", port: int = 8765):
+    def __init__(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 8765,
+        http_host: str = "127.0.0.1",
+        http_port: int = 8080,
+    ):
         self._host = host
         self._port = port
+        self._http_host = http_host
+        self._http_port = http_port
         self._server = None
         self._clients: set = set()
         self._thread: Optional[threading.Thread] = None
@@ -114,6 +124,7 @@ class WebMidiStreamer:
         self._thread = None
         if self._http:
             self._http.shutdown()
+            self._http.server_close()
             self._http = None
         if self._http_thread:
             self._http_thread.join(timeout=1)
@@ -155,7 +166,7 @@ class WebMidiStreamer:
             def log_message(self, format, *args):  # noqa: A003
                 return
 
-        self._http = ThreadingHTTPServer(("0.0.0.0", 8080), Handler)
+        self._http = ThreadingHTTPServer((self._http_host, self._http_port), Handler)
 
         def run_server():
             assert self._http
@@ -249,10 +260,10 @@ class BridgeWorker(threading.Thread):
             time.sleep(self._poll_interval)
 
     def run(self) -> None:  # pragma: no cover - realtime loop
-        if self._simulated:
-            self._run_simulated()
-            return
         try:
+            if self._simulated:
+                self._run_simulated()
+                return
             import serial
 
             with serial.Serial(self.serial_port, 115200, timeout=0.01) as ser:  # type: ignore[name-defined]
@@ -275,6 +286,8 @@ class BridgeWorker(threading.Thread):
             # Swallow exceptions so the GUI can report them instead of crashing the app.
             self.stop_event.set()
             raise
+        finally:
+            self._midi_out.close()
 
 
 class BridgeBackend:
@@ -319,16 +332,27 @@ class BridgeBackend:
     def load_config(self, path: Path) -> Dict[str, Dict[str, float]]:
         with open(path, "r", encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
-        norm_block = data.get("norm") if isinstance(data, dict) else None
+        if not isinstance(data, dict):
+            raise ValueError("Config must be a mapping or contain a 'norm' mapping")
+        norm_block = data.get("norm")
         if norm_block is None:
-            if not isinstance(data, dict):
-                raise ValueError("Config must be a mapping or contain a 'norm' mapping")
             norm_block = data
+        if not isinstance(norm_block, dict):
+            raise ValueError("Config 'norm' block must be a mapping")
         missing = [key for key in STATE_KEYS if key not in norm_block]
         if missing:
             raise ValueError(f"Config missing keys: {', '.join(missing)}")
+        cli_only_keys = [key for key in ("signals", "runtime", "safety", "drones", "midi") if key in data]
+        if "norm" in data and cli_only_keys:
+            self.status.config_notice = (
+                "GUI applies only the 'norm' block. "
+                f"CLI-only keys present: {', '.join(sorted(cli_only_keys))}."
+            )
+        else:
+            self.status.config_notice = None
         self.status.last_config = path
         self.status.last_error = None
+        self._notify()
         return norm_block
 
     def start(
@@ -344,11 +368,22 @@ class BridgeBackend:
     ) -> None:
         self.stop()
         try:
-            midi_out = mido.open_output(midi_port, virtual=True)
-        except Exception:
-            midi_out = mido.open_output()
+            if not midi_port.strip():
+                raise RuntimeError("Choose a MIDI output before starting the bridge.")
+            existing_outputs = set(mido.get_output_names())
+            requested_is_existing = midi_port in existing_outputs
+            midi_out = open_shared_midi_output(
+                midi_port,
+                virtual=not requested_is_existing,
+                fallback_to_default=False,
+            )
+        except Exception as exc:
+            self.status.last_error = str(exc)
+            self._notify()
+            raise
         self.status.active_serial = serial_port
-        self.status.midi_port = midi_port
+        self.status.midi_port = getattr(midi_out, "name", midi_port)
+        self.status.last_error = None
         self._cc_cache.clear()
         self._worker = BridgeWorker(
             serial_port,

@@ -10,14 +10,15 @@ together.
 
 from __future__ import annotations
 
+import sys
 import threading
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-import mido
 import yaml
 
+from midi_ports import open_midi_output as open_shared_midi_output
 from msp_bridge import (
     build_altitude_consumers,
     build_signal_schema,
@@ -78,17 +79,24 @@ def worker(
     )
 
 
+def open_midi_output(port_name: str):
+    """Open configured MIDI output; warn when we must fall back."""
+
+    return open_shared_midi_output(
+        port_name,
+        virtual=True,
+        fallback_to_default=True,
+        on_fallback=lambda message: print(f"[midi-warning] {message}", file=sys.stderr),
+    )
+
+
 def main() -> None:
     """Load configuration, launch worker threads, and keep them alive."""
 
     with open("config/multi.yaml", "r", encoding="utf-8") as fh:
         cfg = yaml.safe_load(fh) or {}
 
-    try:
-        midi_out = mido.open_output(cfg["midi"]["port_name"], virtual=True)
-    except Exception:
-        # Fallback keeps rehearsals going even if the named port doesn't exist.
-        midi_out = mido.open_output()
+    midi_out = open_midi_output(str(cfg["midi"]["port_name"]))
 
     runtime = cfg.get("runtime", {})
     safety = cfg.get("safety", {})

@@ -5,6 +5,7 @@
 ![Telemetry-to-MIDI flow](docs/architecture.svg)
 
 The diagram above keeps the signal chain honest: Betaflight MSP frames roll through `msp_bridge.py` for smoothing and normalization (the YAML in `config/` is the gospel), the CLI launchers (`msp_to_midi.py`, `msp_multi_to_midi.py`) light up a virtual/physical MIDI port, and CC14–20 plus CC64 ride into Rack patches or OBS overlays.
+The CLI stack is the canonical control surface for full config semantics (`signals`, `runtime`, `safety`, multi-drone orchestration); the GUI is intentionally a single-drone operator panel centered on `norm` tuning and monitoring.
 
 > No breadcrumbs? No problem. This README is the field manual. Open the playbooks below in order and you’ll know which script to run, which attenuverter to twist, and where the gremlins hide.
 
@@ -25,6 +26,8 @@ The diagram above keeps the signal chain honest: Betaflight MSP frames roll thro
    See: `docs/UX_MAP.md`
 6. **GUI Control Room Guide** — operating and customizing the PyQt6 dashboard.  
    See: `docs/GUI_CONTROL_ROOM.md`
+7. **Release Notes Policy** — where tagged release notes must live for CI.  
+   See: `docs/releases/README.md`
 
 Treat that order as gospel for newcomers: prototype → secure → rehearse → reflect → repeat.
 

@@ -50,6 +50,7 @@ if str(BRIDGE_DIR) not in sys.path:
     sys.path.insert(0, str(BRIDGE_DIR))
 
 import msp_bridge  # type: ignore  # pylint: disable=wrong-import-position
+from midi_ports import open_midi_output as open_shared_midi_output  # type: ignore
 
 
 class MSPLogSerial:
@@ -111,8 +112,12 @@ def choose_midi_port(port_name: str, virtual: bool):
     """Return an opened MIDI output, creating a virtual port when requested."""
 
     try:
-        return mido.open_output(port_name, virtual=virtual)
-    except (IOError, OSError) as exc:
+        return open_shared_midi_output(
+            port_name,
+            virtual=virtual,
+            fallback_to_default=False,
+        )
+    except RuntimeError as exc:
         raise SystemExit(
             "Failed to open MIDI port. Pass --no-virtual to reuse an existing "
             "port or double-check your backend."

@@ -19,14 +19,15 @@ import argparse
 import multiprocessing as mp
 from queue import Empty, Full
 import signal
+import sys
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple
 
-import mido
 import serial
 import yaml
 
+from midi_ports import open_midi_output as open_shared_midi_output
 from msp_bridge import (
     build_altitude_consumers,
     build_mapper,
@@ -169,10 +170,12 @@ def drone_worker(
 
 
 def _open_midi_output(port_name: str):
-    try:
-        return mido.open_output(port_name, virtual=True)
-    except Exception:
-        return mido.open_output()
+    return open_shared_midi_output(
+        port_name,
+        virtual=True,
+        fallback_to_default=True,
+        on_fallback=lambda message: print(f"[midi-warning] {message}", file=sys.stderr, flush=True),
+    )
 
 
 def main() -> None:

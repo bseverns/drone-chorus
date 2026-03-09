@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  bridge-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r software/midi-bridge/requirements.txt pytest
+
+      - name: Repo lint
+        run: python scripts/lint_repo.py
+
+      - name: Unit tests
+        run: |
+          pytest -q \
+            software/midi-bridge/test_msp_bridge.py \
+            software/midi-bridge/test_gui_backend.py \
+            software/midi-bridge/test_launchers.py
+
+  mp-smoke-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r software/midi-bridge/requirements.txt pytest
+
+      - name: Multiprocessing smoke tests
+        run: pytest -q software/midi-bridge/test_msp_multi_mp_smoke.py

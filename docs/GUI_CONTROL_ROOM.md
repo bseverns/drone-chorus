@@ -3,6 +3,12 @@
 This guide covers the PyQt6 dashboard in `software/midi-bridge/gui_app.py`:
 serial selection, MIDI output routing, preset workflows, and live config editing.
 
+## Scope truth
+
+- Canonical stack: CLI launchers (`msp_to_midi.py`, `msp_multi_to_midi.py`, `msp_multi_mp.py`).
+- GUI scope: single-drone bridge operation, live monitoring, and `norm` mapping edits.
+- Not first-class in GUI today: multi-drone orchestration, full `signals` workflows, and full `runtime`/`safety` controls.
+
 ## Launch
 
 ```bash
@@ -39,6 +45,7 @@ pip install -r software/midi-bridge/requirements.txt
 - `WebMIDI preview server`: starts websocket + local preview page:
   - `ws://localhost:8765`
   - `http://localhost:8080`
+  - Both services bind to loopback only by default.
 
 ## Preset workflow
 
@@ -76,6 +83,8 @@ full custom signal extraction/CC remapping workflows.
 2. No MIDI output in Rack
 - Ensure Rack device is listening to the same port shown in GUI.
 - On Windows, create/select a loopback MIDI port first.
+- GUI startup no longer silently falls back to a different MIDI port; if selected
+  output cannot open, start fails with an explicit error.
 
 3. Config error on load
 - Ensure YAML parses.

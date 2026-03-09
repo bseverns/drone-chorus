@@ -24,9 +24,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import mido
 import yaml
 
+from midi_ports import open_midi_output as open_shared_midi_output
 from msp_bridge import (
     build_altitude_consumers,
     build_signal_schema,
@@ -78,14 +78,14 @@ def load_overrides(path: Optional[str]) -> Optional[Dict[str, Dict[str, float]]]
 
 
 def open_midi_output(name: Optional[str], virtual: bool) -> Any:
-    """Open a MIDI output port, falling back to the default port on failure."""
+    """Open a MIDI output port with explicit fallback warning output."""
 
-    if name:
-        try:
-            return mido.open_output(name, virtual=virtual)
-        except Exception:
-            return mido.open_output()
-    return mido.open_output()
+    return open_shared_midi_output(
+        name,
+        virtual=virtual,
+        fallback_to_default=True,
+        on_fallback=lambda message: print(f"[midi-warning] {message}", file=sys.stderr),
+    )
 
 
 def build_estop_checker(path: Optional[str]):

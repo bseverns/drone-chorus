@@ -17,7 +17,7 @@ Visual cheat sheet: MSP frames leave Betaflight, get smoothed and normalized in 
 | `msp_to_midi.py` | Command-line launcher for a single drone. | Shows how to load the YAML norms, open a MIDI port, and kick the bridge loop. |
 | `msp_multi_to_midi.py` | Threaded launcher for multi-drone ensembles. | Demonstrates sharing one MIDI port while isolating each craft on its own channel. |
 | `msp_multi_mp.py` | Multiprocessing prototype launcher for multi-drone rigs. | Use this to test process-per-drone decode under heavier load. |
-| `gui_app.py` + `gui_backend.py` | PyQt6 control room that wraps the bridge with live CC monitoring, YAML presets, a debug simulator, and a WebMIDI preview server. | Use this when you want everything on one dashboard—serial ports, MIDI outs, heartbeat LED, config watcher, the works. |
+| `gui_app.py` + `gui_backend.py` | PyQt6 control room with live CC monitoring, YAML preset editing (`norm` block), debug simulator, and a WebMIDI preview server. | Use this for single-drone operations and mapper tuning; keep CLI launchers as the canonical path for full multi-drone + safety/signal orchestration. |
 | `webmidi_preview.html` | Tiny HTML visualizer fed by the websocket stream. | Load it in a browser if you want to watch CCs dance without opening a DAW. |
 | `Dockerfile` | Container image for headless bridge runs. | Useful for repeatable workshop/demo environments. |
 
@@ -89,7 +89,13 @@ What you get:
   over `ws://localhost:8765` and serves `http://localhost:8080` with
   `webmidi_preview.html` so you can watch faders wiggle in a browser. If your
   browser supports WebMIDI it will also forward the values to any virtual port
-  you’ve opened there.
+  you’ve opened there. Both servers bind to loopback by default.
+
+Scope note:
+
+- GUI applies the `norm` block and bridge controls only.
+- Use CLI launchers for first-class `signals`, `runtime`, `safety`, and
+  multi-drone orchestration behavior from `config/multi.yaml`.
 
 The GUI is capped at ~30–60 Hz update timers so your CPU stays cool while you
 rehearse.
