@@ -2,6 +2,11 @@
 
 This is the soup‑to‑nuts wiring for **flight → MIDI → Rack**.
 
+Canonical contract first:
+
+- [CONTROL_CONTRACT.md](CONTROL_CONTRACT.md) for the stable telemetry -> signal -> CC vocabulary
+- [CURRENT_STATE.md](CURRENT_STATE.md) for which control surfaces are stable versus evolving
+
 ## Signals (surface‑level map)
 - **MSP telemetry** (roll, pitch, yaw proxy, throttle, RSSI, VBAT, altitude/vel)
 - **Python bridge** smooths & scales → **MIDI CC** on port `DroneChorus`
@@ -46,3 +51,7 @@ This is the soup‑to‑nuts wiring for **flight → MIDI → Rack**.
 - Use **yaw rate** for lively micro‑movement; keep delay FB under 0.6.
 - Altitude CC: we sniff **MSP_ALTITUDE** first; if the craft never sends it (no
   baro), the bridge remaps throttle into a 0–3 m envelope so CC17 keeps moving.
+
+Truth note:
+
+- Older docs may call CC64 an "arm" control. The canonical contract page documents the current code truth: CC64 is emitted from throttle-threshold gate behavior plus E-stop logic.

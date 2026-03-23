@@ -3,6 +3,12 @@
 This guide covers the PyQt6 dashboard in `software/midi-bridge/gui_app.py`:
 serial selection, MIDI output routing, preset workflows, and live config editing.
 
+See also:
+
+- [CURRENT_STATE.md](CURRENT_STATE.md) for scope and maturity
+- [CONTROL_CONTRACT.md](CONTROL_CONTRACT.md) for the canonical mapping contract
+- [PRESET_GALLERY.md](PRESET_GALLERY.md) for how presets should be named and documented
+
 ## Scope truth
 
 - Canonical stack: CLI launchers (`msp_to_midi.py`, `msp_multi_to_midi.py`, `msp_multi_mp.py`).
@@ -58,6 +64,8 @@ pip install -r software/midi-bridge/requirements.txt
 Recommended naming:
 - `venue_patchname.yaml` for show files.
 - `lab_experiment_<date>.yaml` for rehearsal experiments.
+
+For a repo-level preset documentation structure, see [PRESET_GALLERY.md](PRESET_GALLERY.md).
 
 ## Customizing signals and CC assignments
 

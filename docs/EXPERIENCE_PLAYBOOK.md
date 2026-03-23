@@ -1,5 +1,11 @@
 # EXPERIENCE PLAYBOOK
 
+Use these alongside this page:
+
+- [CONTROL_CONTRACT.md](CONTROL_CONTRACT.md) for what each control signal means
+- [REPLAY_AND_RECEIPTS.md](REPLAY_AND_RECEIPTS.md) for no-props proof and run receipts
+- [CURRENT_STATE.md](CURRENT_STATE.md) for stability labels by surface
+
 ## Rehearsal phases
 1) **Cold hover**: verify MSP, MIDI port, and Rack mapping with props off (USB only).  
 2) **Caged hover**: add small gestures; confirm slew/curves keep audio stable.  

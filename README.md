@@ -1,15 +1,30 @@
-# Drone Chorus — Telemetry‑Driven Synth (VCV Rack Edition)
+# Drone Chorus — Telemetry-Driven Synth (VCV Rack Edition)
 
-**Drone Chorus** turns FPV flight into **modulation you can hear**. We read Betaflight telemetry, smooth it into **MIDI CC** on a virtual port, and let a **VCV Rack** patch sing with it. Think of it as a polite feedback loop between **airframe dynamics** and **synth architecture**.
+**Drone Chorus** is a telemetry-driven performance system: Betaflight flight data comes in over MSP, gets smoothed and normalized into a fixed MIDI CC vocabulary, and drives VCV Rack patches, rehearsal workflows, and show surfaces. The repo is built as a field manual and teaching stack for that contract, with the CLI path treated as canonical, the GUI kept honest, and replay/safety/log discipline treated as part of the instrument.
 
 ![Telemetry-to-MIDI flow](docs/architecture.svg)
 
-The diagram above keeps the signal chain honest: Betaflight MSP frames roll through `msp_bridge.py` for smoothing and normalization (the YAML in `config/` is the gospel), the CLI launchers (`msp_to_midi.py`, `msp_multi_to_midi.py`) light up a virtual/physical MIDI port, and CC14–20 plus CC64 ride into Rack patches or OBS overlays.
+The diagram above keeps the signal chain honest: Betaflight MSP frames roll through `msp_bridge.py` for smoothing and normalization (the YAML in `config/` is the gospel), the CLI launchers (`msp_to_midi.py`, `msp_multi_to_midi.py`) light up a virtual/physical MIDI port, and CC14-20 plus CC64 ride into Rack patches or OBS overlays.
 The CLI stack is the canonical control surface for full config semantics (`signals`, `runtime`, `safety`, multi-drone orchestration); the GUI is intentionally a single-drone operator panel centered on `norm` tuning and monitoring.
 
-> No breadcrumbs? No problem. This README is the field manual. Open the playbooks below in order and you’ll know which script to run, which attenuverter to twist, and where the gremlins hide.
+> No breadcrumbs? No problem. This README is still the field manual. The new route pages below make entry easier, but the repo still expects you to care about safety, patching, and receipts.
 
 **Mission statement**: build performance systems that are safe, legible, and remixable. That means every README doubles as a zine. Expect callouts on safety, assumptions, and hardware quirks right next to the fun bits.
+
+* * *
+
+## Start here
+
+If you want the shortest path into the repo, use these first:
+
+- **Choose your route** — smallest useful doc set for hearing it, flying it, rehearsing it, teaching it, or contributing.
+  See: `docs/CHOOSE_YOUR_PATH.md`
+- **Current state** — what is stable, evolving, experimental, or ready to explore.
+  See: `docs/CURRENT_STATE.md`
+- **Control contract** — the canonical telemetry -> normalized signal -> MIDI CC mapping.
+  See: `docs/CONTROL_CONTRACT.md`
+- **Preset gallery** — how presets are meant to be named and documented.
+  See: `docs/PRESET_GALLERY.md`
 
 * * *
 
@@ -29,7 +44,7 @@ The CLI stack is the canonical control surface for full config semantics (`signa
 7. **Release Notes Policy** — where tagged release notes must live for CI.  
    See: `docs/releases/README.md`
 
-Treat that order as gospel for newcomers: prototype → secure → rehearse → reflect → repeat.
+Treat that order as gospel when you want the full manual: prototype -> secure -> rehearse -> reflect -> repeat.
 
 * * *
 
@@ -107,6 +122,8 @@ python3 software/midi-bridge/msp_to_midi.py --serial /dev/ttyUSB0
 4) **VCV Rack**: load `vcv/DroneChorus_Patch.vcv`, set the **Core MIDI‑CC** device to **DroneChorus**, Channel 1.
 5) **Fine tune**: ride attenuverters; if you need deeper changes, clone `config/multi.yaml` and point `--norm-config` at your remix.
 
+Before changing mappings, skim `docs/CONTROL_CONTRACT.md` so you know which parts of the control vocabulary are stable versus configurable.
+
 ## Quickstart (multi‑drone, stage rig)
 This is what you launch when you’re spinning up the full chorus—multiple craft, locked CC maps, each on its own channel.
 
@@ -158,6 +175,8 @@ how the telemetry feels? Edit the `norm` section in `config/mapping.yaml`
 (slews, ranges, curves) and re-run the command; it’s the fastest way to teach
 students how scaling math translates into musical gesture.
 
+If you want the proof/teaching path explained as a first-class surface, see `docs/REPLAY_AND_RECEIPTS.md`.
+
 * * *
 
 ## MIDI CC map (play it like an instrument tech)
@@ -173,8 +192,9 @@ students how scaling math translates into musical gesture.
 | 64 | arm gate | sustain-style hold for scene swaps |
 
 The whole mapping is documented like a lab notebook: see
-`docs/CONTROL_STACK_PLAYBOOK.md` for the long-form rationale, smoothing ranges,
-and how to hack on the YAML. The quick headline is that altitude isn't left to
+`docs/CONTROL_CONTRACT.md` for the canonical contract and
+`docs/CONTROL_STACK_PLAYBOOK.md` for the long-form wiring rationale, smoothing
+ranges, and how to hack on the YAML. The quick headline is that altitude isn't left to
 rot—if `MSP_ALTITUDE` packets arrive we publish meters directly; otherwise we
 lean on throttle so CC17 still animates your patch.
 
@@ -202,6 +222,7 @@ Import `obs/DroneChorus_SceneCollection.json`, then relink: **FPV Capture**, **V
 - Record each rehearsal in `logs/`—treat them as lab reports you can annotate later.
 - Encourage learners to fork the YAML maps, tweak ranges, and PR back their favorite voicings.
 - When in doubt, pair a newcomer with the telemetry playback flow so they can experiment without airspace stress.
+- Use `docs/CHOOSE_YOUR_PATH.md` and `docs/CURRENT_STATE.md` when you need to onboard mixed audiences quickly.
 
 * * *
 

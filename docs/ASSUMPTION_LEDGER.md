@@ -1,5 +1,10 @@
 # ASSUMPTION LEDGER
 
+Cross-check these assumptions against:
+
+- [CONTROL_CONTRACT.md](CONTROL_CONTRACT.md) for the current control truth
+- [CURRENT_STATE.md](CURRENT_STATE.md) for maturity labels by surface
+
 - **A1: Slew‑limited CCs will sound more musical than raw telemetry.**  
   *Mitigation*: default slews in `config/*`; keep attenuverters < 50% until tuned.
 - **A2: Per‑drone channels are simpler than per‑drone ports.**  
