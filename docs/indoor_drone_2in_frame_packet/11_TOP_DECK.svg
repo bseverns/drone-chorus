@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170mm" height="165mm" viewBox="0 0 170 165">
+  <defs>
+
+<style>
+.outline { stroke:#000; stroke-width:0.5; fill:none; }
+.cut { stroke:#000; stroke-width:0.6; fill:none; }
+.guide { stroke:#666; stroke-width:0.3; fill:none; stroke-dasharray:2 2; }
+.centerline { stroke:#999; stroke-width:0.25; fill:none; stroke-dasharray:3 2; }
+.hole { stroke:#000; stroke-width:0.28; fill:none; }
+.slot { stroke:#000; stroke-width:0.28; fill:none; }
+.note { font-family:Arial,sans-serif; font-size:3px; }
+.small { font-family:Arial,sans-serif; font-size:2.4px; }
+.zone { stroke:#444; stroke-width:0.3; fill:none; stroke-dasharray:4 2; }
+</style>
+
+  </defs>
+  <rect x="0" y="0" width="170" height="165" fill="white"/>
+  <g transform="translate(10,10)">
+    <text class="note" x="0" y="0">11_TOP_DECK.svg — first-pass top bridge using FC stack holes</text>
+    <rect class="cut" x="34" y="18" width="82" height="62" rx="8" ry="8"/>
+    <rect class="guide" x="44" y="28" width="62" height="22" rx="4" ry="4"/>
+    <text class="small" x="46" y="41">camera / VTX / receiver bridge zone</text>
+    <rect class="guide" x="46" y="54" width="58" height="16" rx="4" ry="4"/>
+    <text class="small" x="48" y="64">future MCU / LED control shelf</text>
+
+    <!-- FC stack holes -->
+    <circle class="hole" cx="62.25" cy="36.25" r="1.60"/>
+    <circle class="hole" cx="87.75" cy="36.25" r="1.60"/>
+    <circle class="hole" cx="62.25" cy="61.75" r="1.60"/>
+    <circle class="hole" cx="87.75" cy="61.75" r="1.60"/>
+    <text class="small" x="106" y="34">25.5 x 25.5 mm FC hole reuse</text>
+
+    <!-- Wire relief notches -->
+    <rect class="slot" x="31" y="42" width="3.5" height="12" rx="0.8"/>
+    <rect class="slot" x="116" y="42" width="3.5" height="12" rx="0.8"/>
+    <text class="small" x="121" y="49">side wire relief slots</text>
+
+    <!-- Front lip notes -->
+    <line class="guide" x1="75" y1="18" x2="75" y2="80"/>
+    <text class="small" x="78" y="23">centerline</text>
+
+    <text class="small" x="0" y="104">This deck is intentionally generic. It can be shortened, skeletonized, or split once actual camera and VTX are selected.</text>
+    <text class="small" x="0" y="109">It is drawn to piggyback on the FC stack hardware rather than inventing a second standoff system immediately.</text>
+  </g>
+</svg>

@@ -1,0 +1,29 @@
+Feature,X_mm,Y_mm,Diameter_or_Size_mm,Note
+FC1,62.25,62.25,3.20,FC stack hole; 25.5 x 25.5 pattern
+FC2,87.75,62.25,3.20,FC stack hole; 25.5 x 25.5 pattern
+FC3,62.25,87.75,3.20,FC stack hole; 25.5 x 25.5 pattern
+FC4,87.75,87.75,3.20,FC stack hole; 25.5 x 25.5 pattern
+FL_CENTER,36.00,36.00,2.40 ref,Motor center reference
+FL_MOTOR_HOLE_1,31.50,31.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+FL_MOTOR_HOLE_2,40.50,31.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+FL_MOTOR_HOLE_3,31.50,40.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+FL_MOTOR_HOLE_4,40.50,40.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+FR_CENTER,114.00,36.00,2.40 ref,Motor center reference
+FR_MOTOR_HOLE_1,109.50,31.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+FR_MOTOR_HOLE_2,118.50,31.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+FR_MOTOR_HOLE_3,109.50,40.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+FR_MOTOR_HOLE_4,118.50,40.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+RL_CENTER,36.00,114.00,2.40 ref,Motor center reference
+RL_MOTOR_HOLE_1,31.50,109.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+RL_MOTOR_HOLE_2,40.50,109.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+RL_MOTOR_HOLE_3,31.50,118.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+RL_MOTOR_HOLE_4,40.50,118.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+RR_CENTER,114.00,114.00,2.40 ref,Motor center reference
+RR_MOTOR_HOLE_1,109.50,109.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+RR_MOTOR_HOLE_2,118.50,109.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+RR_MOTOR_HOLE_3,109.50,118.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+RR_MOTOR_HOLE_4,118.50,118.50,2.10,Assumed 1105 9 x 9 mm M2 pattern
+BAT_SLOT_L,60.00,63.50,3.60 x 23.00,Battery strap slot
+BAT_SLOT_R,86.40,63.50,3.60 x 23.00,Battery strap slot
+FRONT_ACC_HOLE_L,67.00,47.00,2.20,Optional front accessory / beeper hole
+FRONT_ACC_HOLE_R,83.00,47.00,2.20,Optional front accessory / beeper hole

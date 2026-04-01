@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120mm" height="80mm" viewBox="0 0 120 80">
+  <defs>
+    <style>
+      .cut { stroke:#000; stroke-width:0.55; fill:none; }
+      .guide { stroke:#666; stroke-width:0.3; fill:none; stroke-dasharray:2 2; }
+      .note { font-family:Arial,sans-serif; font-size:3px; }
+      .small { font-family:Arial,sans-serif; font-size:2.4px; }
+    </style>
+  </defs>
+  <rect x="0" y="0" width="120" height="80" fill="white"/>
+  <g transform="translate(8,12)">
+    <text class="note" x="0" y="-4">13_CAMERA_BRACKET_BLANK.svg — adapt after choosing the actual analog camera</text>
+    <rect class="cut" x="18" y="14" width="68" height="18" rx="4" ry="4"/>
+    <line class="guide" x1="52" y1="6" x2="52" y2="44"/>
+    <line class="guide" x1="8" y1="23" x2="96" y2="23"/>
+    <rect class="guide" x="38" y="17" width="28" height="12" rx="2"/>
+    <text class="small" x="1" y="52">Blank bridge for a front camera bracket.</text>
+    <text class="small" x="1" y="57">Use the centerlines to place the actual camera hole pattern once the chosen analog camera is in hand.</text>
+    <text class="small" x="1" y="62">This avoids baking the wrong nano/micro width into the first packet.</text>
+  </g>
+</svg>

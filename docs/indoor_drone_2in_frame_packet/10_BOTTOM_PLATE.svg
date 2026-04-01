@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="170mm" height="185mm" viewBox="0 0 170 185">
+<defs>
+
+<style>
+.outline { stroke:#000; stroke-width:0.5; fill:none; }
+.cut { stroke:#000; stroke-width:0.6; fill:none; }
+.guide { stroke:#666; stroke-width:0.3; fill:none; stroke-dasharray:2 2; }
+.centerline { stroke:#999; stroke-width:0.25; fill:none; stroke-dasharray:3 2; }
+.hole { stroke:#000; stroke-width:0.28; fill:none; }
+.slot { stroke:#000; stroke-width:0.28; fill:none; }
+.note { font-family:Arial,sans-serif; font-size:3px; }
+.small { font-family:Arial,sans-serif; font-size:2.4px; }
+.zone { stroke:#444; stroke-width:0.3; fill:none; stroke-dasharray:4 2; }
+</style>
+
+</defs>
+<rect x="0" y="0" width="170" height="185" fill="white"/>
+<g transform="translate(10,20)">
+<rect class="cut" x="7.50" y="7.50" width="135.00" height="135.00" rx="28.50" ry="28.50"/>
+<line class="centerline" x1="0" y1="75.00" x2="150" y2="75.00"/>
+<line class="centerline" x1="75.00" y1="0" x2="75.00" y2="150"/>
+<circle class="guide" cx="36.00" cy="36.00" r="26.00"/>
+<circle class="guide" cx="36.00" cy="36.00" r="28.50"/>
+<circle class="hole" cx="36.00" cy="36.00" r="1.2"/>
+<circle class="hole" cx="31.50" cy="31.50" r="1.05"/>
+<circle class="hole" cx="40.50" cy="31.50" r="1.05"/>
+<circle class="hole" cx="31.50" cy="40.50" r="1.05"/>
+<circle class="hole" cx="40.50" cy="40.50" r="1.05"/>
+<text class="small" x="43.00" y="29.00">FL motor center</text>
+<circle class="guide" cx="114.00" cy="36.00" r="26.00"/>
+<circle class="guide" cx="114.00" cy="36.00" r="28.50"/>
+<circle class="hole" cx="114.00" cy="36.00" r="1.2"/>
+<circle class="hole" cx="109.50" cy="31.50" r="1.05"/>
+<circle class="hole" cx="118.50" cy="31.50" r="1.05"/>
+<circle class="hole" cx="109.50" cy="40.50" r="1.05"/>
+<circle class="hole" cx="118.50" cy="40.50" r="1.05"/>
+<text class="small" x="121.00" y="29.00">FR motor center</text>
+<circle class="guide" cx="36.00" cy="114.00" r="26.00"/>
+<circle class="guide" cx="36.00" cy="114.00" r="28.50"/>
+<circle class="hole" cx="36.00" cy="114.00" r="1.2"/>
+<circle class="hole" cx="31.50" cy="109.50" r="1.05"/>
+<circle class="hole" cx="40.50" cy="109.50" r="1.05"/>
+<circle class="hole" cx="31.50" cy="118.50" r="1.05"/>
+<circle class="hole" cx="40.50" cy="118.50" r="1.05"/>
+<text class="small" x="43.00" y="107.00">RL motor center</text>
+<circle class="guide" cx="114.00" cy="114.00" r="26.00"/>
+<circle class="guide" cx="114.00" cy="114.00" r="28.50"/>
+<circle class="hole" cx="114.00" cy="114.00" r="1.2"/>
+<circle class="hole" cx="109.50" cy="109.50" r="1.05"/>
+<circle class="hole" cx="118.50" cy="109.50" r="1.05"/>
+<circle class="hole" cx="109.50" cy="118.50" r="1.05"/>
+<circle class="hole" cx="118.50" cy="118.50" r="1.05"/>
+<text class="small" x="121.00" y="107.00">RR motor center</text>
+<circle class="hole" cx="62.25" cy="62.25" r="1.60"/>
+<circle class="hole" cx="87.75" cy="62.25" r="1.60"/>
+<circle class="hole" cx="62.25" cy="87.75" r="1.60"/>
+<circle class="hole" cx="87.75" cy="87.75" r="1.60"/>
+<rect class="guide" x="54.00" y="54.00" width="42" height="42"/>
+<text class="small" x="98.00" y="60.00">42 x 42 mm working envelope</text>
+<rect class="slot" x="60.00" y="63.50" width="3.60" height="23.00" rx="0.80" ry="0.80"/>
+<rect class="slot" x="86.40" y="63.50" width="3.60" height="23.00" rx="0.80" ry="0.80"/>
+<text class="small" x="93" y="76">battery strap slots</text>
+<circle class="hole" cx="67.00" cy="47.00" r="1.10"/>
+<circle class="hole" cx="83.00" cy="47.00" r="1.10"/>
+<text class="small" x="87.00" y="48">optional front accessory pair</text>
+<text class="note" x="0" y="-6">10_BOTTOM_PLATE.svg — first-pass cut geometry</text>
+<text class="small" x="0" y="160">Assumes 1105-class motor with 9 x 9 mm M2 mount. Verify against actual motor before cutting final material.</text>
+<text class="small" x="0" y="165">Rounded-square outline keeps the central raft clean and leaves room to shape future duct or guard structures.</text>
+</g>
+</svg>
