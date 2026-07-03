@@ -198,10 +198,10 @@ def test_update_state_from_msp_decodes_core_payloads():
     update_state_from_msp(state, MSP_ALTITUDE, altitude_payload)
     assert state["altitude"] == pytest.approx(2.5)
 
-    analog_payload = bytes([42, 0, 0, 88, 0, 0, 0])
+    analog_payload = bytes([42, 0, 0, 0xF4, 0x01, 0, 0])
     update_state_from_msp(state, MSP_ANALOG, analog_payload)
     assert state["vbat"] == pytest.approx(4.2)
-    assert state["rssi"] == 88
+    assert state["rssi"] == 500
 
 
 def test_emit_state_cc_publishes_all_controllers(monkeypatch):

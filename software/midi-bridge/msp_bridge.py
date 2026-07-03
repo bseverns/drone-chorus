@@ -366,7 +366,7 @@ def update_state_from_msp(state: Dict[str, float], cmd: int, data: bytes) -> Non
         state["altitude"] = altitude_cm / 100.0
     elif cmd == MSP_ANALOG and len(data) >= 7:
         state["vbat"] = data[0] / 10.0
-        state["rssi"] = float(data[3] if len(data) >= 5 else 100)
+        state["rssi"] = float(struct.unpack("<H", data[3:5])[0])
 
 
 def emit_state_cc(

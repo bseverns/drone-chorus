@@ -147,6 +147,7 @@ def replay_log(
         raise SystemExit(f"{log_path} is empty—did you capture any bytes?")
     mapper = msp_bridge.build_mapper(norm)
     state = dict(msp_bridge._STATE_TEMPLATE)
+    inject_altitude, altitude_handlers = msp_bridge.build_altitude_consumers()
     serial_source = MSPLogSerial(payload, loop=loop)
     logger = MIDILogger(verbose)
 
@@ -165,6 +166,9 @@ def replay_log(
                 continue
             cmd, data = frame
             msp_bridge.update_state_from_msp(state, cmd, data)
+            if cmd in altitude_handlers:
+                altitude_handlers[cmd](state, data)
+            inject_altitude(state)
             now = time.time()
             if now - last_emit > poll_interval:
                 msp_bridge.emit_state_cc(midi_out, mapper, channel, state)

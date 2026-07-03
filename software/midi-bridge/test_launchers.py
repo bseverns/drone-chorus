@@ -132,3 +132,68 @@ def test_replay_choose_midi_port_exits_on_open_failure(monkeypatch):
 
     with pytest.raises(SystemExit, match="Failed to open MIDI port"):
         replay_log.choose_midi_port("ReplayPort", virtual=True)
+
+
+def test_replay_applies_altitude_handlers_before_emit(monkeypatch, tmp_path):
+    log_path = tmp_path / "one-frame.mspbin"
+    log_path.write_bytes(b"x")
+    emitted = []
+    calls = []
+
+    class FakeMidiOut:
+        name = "ReplayPort"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    def fake_read_frame(serial_source):
+        if calls:
+            serial_source._exhausted = True
+            return None
+        calls.append("frame")
+        return replay_log.msp_bridge.MSP_ALTITUDE, b"payload"
+
+    def fake_build_altitude_consumers():
+        def inject_altitude(state):
+            state["altitude"] += 0.5
+
+        def decode_altitude(state, _data):
+            state["altitude"] = 2.0
+
+        return inject_altitude, {replay_log.msp_bridge.MSP_ALTITUDE: decode_altitude}
+
+    monkeypatch.setattr(replay_log, "choose_midi_port", lambda *_args, **_kwargs: FakeMidiOut())
+    monkeypatch.setattr(replay_log.msp_bridge, "build_mapper", lambda norm: object())
+    monkeypatch.setattr(replay_log.msp_bridge, "read_msp_frame", fake_read_frame)
+    monkeypatch.setattr(
+        replay_log.msp_bridge,
+        "build_altitude_consumers",
+        fake_build_altitude_consumers,
+    )
+    monkeypatch.setattr(
+        replay_log.msp_bridge,
+        "update_state_from_msp",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        replay_log.msp_bridge,
+        "emit_state_cc",
+        lambda _out, _mapper, _channel, state: emitted.append(dict(state)),
+    )
+
+    replay_log.replay_log(
+        log_path,
+        "ReplayPort",
+        {"altitude": {"min": 0.0, "max": 10.0}},
+        channel=0,
+        poll_interval=0.0,
+        idle_sleep=0.0,
+        loop=False,
+        virtual=True,
+        verbose=False,
+    )
+
+    assert emitted[0]["altitude"] == pytest.approx(2.5)
